@@ -32,9 +32,6 @@
   // (like a native `<option>`) — this is a one-time snapshot, not meant to track later prop changes.
   // svelte-ignore state_referenced_locally
   ctx.register(key, { content, label: resolvedLabel, value });
-  $effect(() => {
-    return () => ctx.unregister(key);
-  });
 
   const query = $derived(ctx.getQuery?.() ?? '');
   const visible = $derived(query.trim() === '' || fuzzySearch(query, resolvedLabel));

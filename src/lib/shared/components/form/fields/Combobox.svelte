@@ -24,6 +24,8 @@
     class?: string;
     /** Overrides the "no results" row. Receives the current search query. */
     empty?: Snippet<[query: string]>;
+    /** Shown for `value` until its `<Option>` has mounted at least once. Single-select only. */
+    fallbackLabel?: string;
     /** Rendered below the option list, inside the panel (e.g. an "add new…" action). */
     footer?: Snippet;
     form?: Omit<RemoteForm<Input, unknown>, 'for'> | RemoteForm<Input, unknown>;
@@ -58,6 +60,7 @@
     children,
     class: className,
     empty,
+    fallbackLabel,
     footer,
     form,
     header,
@@ -84,7 +87,7 @@
   };
   setContext(SELECT_FIELD_CONTEXT, context);
 
-  let boxEl = $state<HTMLDivElement | undefined>();
+  let inputEl = $state<HTMLInputElement | null>(null);
 
   // `as('select'|'select multiple')` is reached only via the `form` branch — SvelteKit's remote
   // forms natively support both (RemoteFormFieldType resolves 'select multiple' for a string[]
@@ -127,7 +130,7 @@
         : ((value as undefined | V[]) ?? []).map((v) => String(v))
       : []
   );
-  const selectedLabel = $derived(registry.get(selectedKey)?.label);
+  const selectedLabel = $derived(registry.get(selectedKey)?.label ?? fallbackLabel);
   const selectedChips = $derived(
     selectedKeys
       .map((key) => ({ key, label: registry.get(key)?.label ?? key }))
@@ -168,11 +171,16 @@
       value={selectedKeys}
       bind:open
     >
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
-        bind:this={boxEl}
         class={['form-input', 'form-select', 'form-combobox', 'form-combobox-multi', className]
           .filter(Boolean)
           .join(' ')}
+        onclick={() => {
+          open = true;
+          inputEl?.focus();
+        }}
       >
         {#if Icon}<Icon class="form-input-icon" />{/if}
         <div class="form-combobox-chips">
@@ -193,19 +201,19 @@
             class="form-combobox-input"
             oninput={(e) => (query = e.currentTarget.value)}
             placeholder={selectedChips.length === 0 ? displayPlaceholder : ''}
+            bind:ref={inputEl}
           />
         </div>
-        <ComboboxPrimitive.Trigger class="form-select-chevron-btn" aria-label="Toggle options">
+        <ComboboxPrimitive.Trigger
+          class="form-select-chevron-btn"
+          aria-label="Toggle options"
+          onclick={(e) => e.stopPropagation()}
+        >
           <ChevronsUpDown class="form-select-chevron" size={14} />
         </ComboboxPrimitive.Trigger>
       </div>
       <ComboboxPrimitive.Portal>
-        <ComboboxPrimitive.Content
-          class="form-select-menu form-combobox-menu"
-          customAnchor={boxEl}
-          forceMount
-          sideOffset={4}
-        >
+        <ComboboxPrimitive.Content class="form-select-menu form-combobox-menu" sideOffset={4}>
           {#if header}<div class="form-combobox-header">{@render header()}</div>{/if}
           <ComboboxPrimitive.Viewport>
             {@render children()}
@@ -236,27 +244,32 @@
       value={selectedKey}
       bind:open
     >
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
-        bind:this={boxEl}
         class={['form-input', 'form-select', 'form-combobox', className].filter(Boolean).join(' ')}
+        onclick={() => {
+          open = true;
+          inputEl?.focus();
+        }}
       >
         {#if Icon}<Icon class="form-input-icon" />{/if}
         <ComboboxPrimitive.Input
           class="form-combobox-input"
           oninput={(e) => (query = e.currentTarget.value)}
           placeholder={selectedLabel ?? displayPlaceholder}
+          bind:ref={inputEl}
         />
-        <ComboboxPrimitive.Trigger class="form-select-chevron-btn" aria-label="Toggle options">
+        <ComboboxPrimitive.Trigger
+          class="form-select-chevron-btn"
+          aria-label="Toggle options"
+          onclick={(e) => e.stopPropagation()}
+        >
           <ChevronsUpDown class="form-select-chevron" size={14} />
         </ComboboxPrimitive.Trigger>
       </div>
       <ComboboxPrimitive.Portal>
-        <ComboboxPrimitive.Content
-          class="form-select-menu form-combobox-menu"
-          customAnchor={boxEl}
-          forceMount
-          sideOffset={4}
-        >
+        <ComboboxPrimitive.Content class="form-select-menu form-combobox-menu" sideOffset={4}>
           {#if header}<div class="form-combobox-header">{@render header()}</div>{/if}
           <ComboboxPrimitive.Viewport>
             {@render children()}
