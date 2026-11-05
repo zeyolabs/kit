@@ -1,19 +1,4 @@
-packages:
-  - '.'
-catalog:
-  '@internationalized/date': ^3.12.1
-  '@sveltejs/kit': ^2.70.1
-  '@tailwindcss/forms': ^0.5.11
-  '@tailwindcss/typography': ^0.5.19
-  svelte: ^5.56.6
-  svelte-sonner: ^1.1.0
-  sveltekit-superforms: ^2.30.1
-  tailwindcss: ^4.2.2
-  zod: ^4.3.6
 allowBuilds:
-  '@tailwindcss/oxide': true
+  '@bufbuild/buf': true
+  core-js-pure: true
   esbuild: true
-  sharp: true
-  workerd: true
-engineStrict: true
-autoInstallPeers: false

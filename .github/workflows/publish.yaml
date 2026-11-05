@@ -1,0 +1,34 @@
+name: Publish
+
+# Pushing a vYYYY.M.D tag (made by `pnpm release`) publishes that version to npmjs.com.
+# npm trusted publishing: no token is stored; npm trusts this repo + workflow (set on the package's
+# npmjs.com settings page), and the release gets a provenance attestation.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - name: Tag matches package.json version
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json $version" && exit 1
+          fi
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      # Trusted publishing needs npm 11.5.1 or newer.
+      - run: npm install -g npm@latest && npm publish

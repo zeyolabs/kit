@@ -1,58 +1,22 @@
-# Runs checks on every pull request
-name: Integration
+name: CI
 
 on:
-  workflow_call:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
-  checks:
-    name: Checks
+  check:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v6
-
-      - name: Setup CI Environment
-        uses: ./.github/actions/setup-ci
-
-      - name: Restore Caches
-        uses: actions/cache@v5
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          path: |
-            .cache/.eslintcache
-            .cache/.prettier-cache
-          key: ${{ runner.os }}-checks-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-checks-
-
-      - name: Run Linting and Type Checks
-        env:
-          NODE_OPTIONS: '--max-old-space-size=4096'
-        run: |
-          pnpm svelte-kit sync
-          pnpm prettier --check --cache --cache-location=.cache/.prettier-cache --cache-strategy content .
-          pnpm eslint --cache --cache-location=.cache/.eslintcache --cache-strategy content .
-          pnpm svelte-check --tsconfig ./tsconfig.json
-
-  tests:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v6
-
-      - name: Setup CI Environment
-        uses: ./.github/actions/setup-ci
-
-      - name: Restore Vitest Cache
-        uses: actions/cache@v5
-        with:
-          path: .cache/.vite
-          key: ${{ runner.os }}-vitest-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-vitest-
-
-      - name: Run Unit Tests
-        run: |
-          pnpm svelte-kit sync
-          pnpm test
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check

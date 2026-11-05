@@ -1,17 +1,13 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  test: {
-    projects: [
-      {
-        extends: './vite.config.ts',
-        test: {
-          environment: 'node',
-          exclude: ['src/**/*.svelte.{test,spec}.{js,ts}', 'src/**/*.db.{test,spec}.{js,ts}'],
-          include: ['src/**/*.{test,spec}.{js,ts}'],
-          name: 'server'
-        }
-      }
-    ]
-  }
+	test: {
+		environment: 'node',
+		exclude: ['**/node_modules/**', '**/*.integration.test.ts'],
+		globals: true,
+		include: ['**/*.test.ts'],
+		name: 'kit',
+		// tsc reports errors from every file; only the `.test-d.ts` type tests should fail the run.
+		typecheck: { enabled: true, ignoreSourceErrors: true, include: ['**/*.test-d.ts'] },
+	},
 });
