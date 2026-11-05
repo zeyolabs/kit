@@ -1,184 +1,151 @@
 {
-  "name": "@webamoki/web-svelte",
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
-  "version": "1.0.0",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Webamoki/Web-svelte.git"
-  },
-  "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "wdev": "vite build && wrangler dev --ip localhost",
-    "cf-typegen": "wrangler types ./worker-configuration.d.ts",
-    "build:lib": "pnpm prepack",
-    "preview": "vite preview",
-    "prepare": "svelte-kit sync || echo ''",
-    "prepack": "svelte-kit sync && svelte-package && publint",
-    "check": "pnpm fmt && pnpm lint:es --fix && pnpm lint:svelte && pnpm test",
-    "fmt": "prettier --write --cache --cache-location=.cache/.prettier-cache --cache-strategy metadata --log-level warn .",
-    "lint": "pnpm lint:es && pnpm lint:svelte",
-    "lint:es": "eslint --cache --cache-location .cache/.eslintcache --cache-strategy metadata .",
-    "lint:svelte": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "test:unit": "vitest run",
-    "test": "pnpm test:unit",
-    "watch": "svelte-package --watch"
-  },
-  "files": [
-    "dist"
-  ],
-  "sideEffects": [
-    "**/*.css"
-  ],
-  "type": "module",
-  "exports": {
-    "./components/form": {
-      "types": "./dist/shared/components/form/index.d.ts",
-      "svelte": "./dist/shared/components/form/index.js"
-    },
-    "./components/form/fields": {
-      "types": "./dist/shared/components/form/fields/index.d.ts",
-      "svelte": "./dist/shared/components/form/fields/index.js"
-    },
-    "./components/ui": {
-      "types": "./dist/shared/components/ui/index.d.ts",
-      "svelte": "./dist/shared/components/ui/index.js"
-    },
-    "./utils/datetime": {
-      "types": "./dist/shared/utils/datetime/index.d.ts",
-      "import": "./dist/shared/utils/datetime/index.js",
-      "require": "./dist/shared/utils/datetime/index.js"
-    },
-    "./utils/zod": {
-      "types": "./dist/shared/utils/zod.d.ts",
-      "import": "./dist/shared/utils/zod.js",
-      "require": "./dist/shared/utils/zod.js"
-    },
-    "./utils/form": {
-      "types": "./dist/shared/utils/form/index.d.ts",
-      "import": "./dist/shared/utils/form/index.js",
-      "require": "./dist/shared/utils/form/index.js"
-    },
-    "./utils/email": {
-      "types": "./dist/shared/utils/email/index.d.ts",
-      "import": "./dist/shared/utils/email/index.js",
-      "require": "./dist/shared/utils/email/index.js"
-    },
-    "./utils/functional": {
-      "types": "./dist/shared/utils/functional/index.d.ts",
-      "import": "./dist/shared/utils/functional/index.js",
-      "require": "./dist/shared/utils/functional/index.js"
-    },
-    "./utils/env": {
-      "types": "./dist/shared/utils/env.d.ts",
-      "import": "./dist/shared/utils/env.js",
-      "require": "./dist/shared/utils/env.js"
-    },
-    "./server/env": {
-      "types": "./dist/shared/server/env.d.ts",
-      "import": "./dist/shared/server/env.js",
-      "require": "./dist/shared/server/env.js"
-    },
-    "./server/form-handler": {
-      "types": "./dist/shared/server/form-handler.d.ts",
-      "import": "./dist/shared/server/form-handler.js",
-      "require": "./dist/shared/server/form-handler.js"
-    },
-    "./server/form-processor": {
-      "types": "./dist/shared/server/form-processor.d.ts",
-      "import": "./dist/shared/server/form-processor.js",
-      "require": "./dist/shared/server/form-processor.js"
-    },
-    "./utils/remote": {
-      "types": "./dist/shared/utils/remote.d.ts",
-      "import": "./dist/shared/utils/remote.js",
-      "require": "./dist/shared/utils/remote.js"
-    },
-    "./utils/command": {
-      "types": "./dist/shared/utils/command.svelte.d.ts",
-      "svelte": "./dist/shared/utils/command.svelte.js",
-      "import": "./dist/shared/utils/command.svelte.js",
-      "require": "./dist/shared/utils/command.svelte.js"
-    }
-  },
-  "peerDependencies": {
-    "@internationalized/date": "catalog:",
-    "@sveltejs/kit": "catalog:",
-    "@tailwindcss/forms": "catalog:",
-    "@tailwindcss/typography": "catalog:",
-    "svelte": "catalog:",
-    "svelte-sonner": "catalog:",
-    "sveltekit-superforms": "catalog:",
-    "tailwindcss": "catalog:",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@anolilab/semantic-release-pnpm": "^8.1.9",
-    "@eslint/compat": "^2.0.5",
-    "@eslint/js": "^9.39.4",
-    "@fontsource-variable/inter": "^5.2.8",
-    "@internationalized/date": "^3.12.0",
-    "@lucide/svelte": "^1.16.0",
-    "@standard-schema/spec": "^1.1.0",
-    "@sveltejs/adapter-cloudflare": "^7.0.0",
-    "@sveltejs/kit": "catalog:",
-    "@sveltejs/package": "^2.5.7",
-    "@sveltejs/vite-plugin-svelte": "^7.0.0",
-    "@tailwindcss/forms": "catalog:",
-    "@tailwindcss/typography": "catalog:",
-    "@tailwindcss/vite": "^4.2.2",
-    "@types/node": "^25.6.0",
-    "@types/ramda": "^0.31.1",
-    "@types/sorted-array-functions": "^1.3.3",
-    "clsx": "^2.1.1",
-    "conventional-changelog-conventionalcommits": "^9.3.1",
-    "eslint": "^9.39.4",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-perfectionist": "^5.8.0",
-    "eslint-plugin-svelte": "^3.17.0",
-    "globals": "^17.5.0",
-    "prettier": "^3.8.3",
-    "prettier-plugin-svelte": "^3.5.1",
-    "prettier-plugin-tailwindcss": "^0.7.2",
-    "publint": "^0.3.21",
-    "semantic-release": "^25.0.3",
-    "shadcn-svelte": "^1.2.7",
-    "shiki": "^4.0.2",
-    "svelte": "catalog:",
-    "svelte-check": "^4.4.6",
-    "svelte-eslint-parser": "^1.6.0",
-    "svelte-sonner": "catalog:",
-    "sveltekit-superforms": "catalog:",
-    "tailwind-merge": "^3.5.0",
-    "tailwind-variants": "^3.2.2",
-    "tailwindcss": "catalog:",
-    "tw-animate-css": "^1.4.0",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.58.2",
-    "vite": "^8.0.8",
-    "vitest": "^4.1.4",
-    "wrangler": "^4.0.0",
-    "zod": "catalog:"
-  },
-  "keywords": [
-    "svelte"
-  ],
-  "dependencies": {
-    "aws4fetch": "^1.0.20",
-    "bits-ui": "^2.17.3",
-    "devalue": "^5.7.1",
-    "formsnap": "^2.0.1",
-    "ramda": "^0.32.0",
-    "sorted-array-functions": "^1.3.0",
-    "svelte-awesome-color-picker": "^4.1.2"
-  },
-  "engines": {
-    "node": "^24.0.0",
-    "pnpm": "^11.0.0"
-  },
-  "packageManager": "pnpm@11.2.2+sha512.36e6621fad506178936455e70247b8808ef4ec25797a9f437a93281a020484e2607f6a469a22e982987c3dbb8866e3071514ab10a4a1749e06edcd1ec118436f"
+	"name": "@zeyolabs/kit",
+	"version": "2026.11.5",
+	"description": "Shared SvelteKit-on-Cloudflare server toolkit: remote-function wrappers, Cloudflare context, monitoring, storage clients, utils and the ESLint config.",
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/zeyolabs/kit.git"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"packageManager": "pnpm@11.5.0",
+	"engines": {
+		"node": ">=24.0.0",
+		"pnpm": "^11.0.0"
+	},
+	"files": [
+		"eslint-config.js",
+		"cloudflare",
+		"monitoring",
+		"server",
+		"storage",
+		"utils",
+		"!**/*.test.ts",
+		"!**/*.test-d.ts",
+		"!**/*.integration.test.ts",
+		"!**/__fixtures__",
+		"!**/*.proto",
+		"!**/buf*.yaml"
+	],
+	"scripts": {
+		"generate:proto": "cd monitoring/prometheus && buf generate",
+		"lint": "eslint . --cache --cache-location .cache/.eslintcache --cache-strategy content",
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"test": "vitest run",
+		"test:integration": "vitest run --config vitest.config.integration.ts",
+		"check": "prettier --check . && pnpm lint && pnpm typecheck && pnpm test",
+		"fmt": "prettier --write .",
+		"release": "node scripts/release.mjs"
+	},
+	"exports": {
+		"./eslint-config": "./eslint-config.js",
+		"./utils/*": "./utils/*.ts",
+		"./server/*": "./server/*.ts",
+		"./cloudflare/*": "./cloudflare/*.ts",
+		"./cloudflare/context": "./cloudflare/context.ts",
+		"./cloudflare/amqp": "./cloudflare/amqp/client.ts",
+		"./cloudflare/dispatch": "./cloudflare/dispatch/client.ts",
+		"./cloudflare/email": "./cloudflare/email/client.ts",
+		"./cloudflare/email/dev": "./cloudflare/email/dev.ts",
+		"./cloudflare/email/testing": "./cloudflare/email/testing.ts",
+		"./cloudflare/r2": "./cloudflare/r2/client.ts",
+		"./cloudflare/r2/testing": "./cloudflare/r2/testing.ts",
+		"./cloudflare/wait-until": "./cloudflare/wait-until.ts",
+		"./cloudflare/workers": "./cloudflare/workers/index.ts",
+		"./cloudflare/workers-ai": "./cloudflare/workers-ai/client.ts",
+		"./cloudflare/workers-ai/testing": "./cloudflare/workers-ai/testing.ts",
+		"./cloudflare/workers/testing": "./cloudflare/workers/testing.ts",
+		"./cloudflare/workers/ticking-do": "./cloudflare/workers/ticking-do.ts",
+		"./monitoring/alerts": "./monitoring/alerts/client.ts",
+		"./monitoring/alerts/event-config": "./monitoring/alerts/event-config.ts",
+		"./monitoring/alerts/policy": "./monitoring/alerts/policy.ts",
+		"./monitoring/alerts/registry": "./monitoring/alerts/registry.ts",
+		"./monitoring/gates": "./monitoring/gates/client.ts",
+		"./monitoring/gates/dev": "./monitoring/gates/dev.ts",
+		"./monitoring/gates/testing": "./monitoring/gates/testing.ts",
+		"./monitoring/logger": "./monitoring/logger/client.ts",
+		"./monitoring/prometheus": "./monitoring/prometheus/client.ts",
+		"./monitoring/prometheus/dev": "./monitoring/prometheus/dev.ts",
+		"./monitoring/prometheus/metrics": "./monitoring/prometheus/metrics.ts",
+		"./monitoring/prometheus/testing": "./monitoring/prometheus/testing.ts",
+		"./monitoring/slack": "./monitoring/slack/client.ts",
+		"./monitoring/slack/api": "./monitoring/slack/api.ts",
+		"./monitoring/slack/events": "./monitoring/slack/events.ts",
+		"./storage/clickhouse": "./storage/clickhouse/index.ts",
+		"./storage/clickhouse/dev": "./storage/clickhouse/dev.ts",
+		"./storage/clickhouse/testing": "./storage/clickhouse/testing.ts",
+		"./storage/manticore": "./storage/manticore/client.ts",
+		"./storage/postgres": "./storage/postgres/client.ts",
+		"./storage/postgres/testing": "./storage/postgres/testing.ts",
+		"./storage/redis": "./storage/redis/client.ts",
+		"./storage/redis/testing": "./storage/redis/testing.ts"
+	},
+	"dependencies": {
+		"@bufbuild/protobuf": "2.16.0",
+		"@clickhouse/client-web": "1.24.0",
+		"@clickhouse/rowbinary": "0.1.1",
+		"@eslint/compat": "2.1.1",
+		"@eslint/js": "9.39.4",
+		"@internationalized/date": "3.12.4",
+		"@oslojs/crypto": "1.0.1",
+		"@oslojs/encoding": "1.1.0",
+		"@sentry/cloudflare": "11.4.0",
+		"aws4fetch": "1.0.20",
+		"eslint-config-prettier": "10.1.8",
+		"eslint-plugin-drizzle": "0.2.3",
+		"eslint-plugin-perfectionist": "5.9.1",
+		"eslint-plugin-svelte": "3.24.0",
+		"globals": "17.13.0",
+		"mimetext": "3.0.28",
+		"mysql2": "3.24.5",
+		"pg": "8.23.1",
+		"snappyjs": "0.7.0",
+		"svelte-eslint-parser": "1.8.1",
+		"tldts": "7.4.16",
+		"typescript-eslint": "8.71.0"
+	},
+	"peerDependencies": {
+		"@cloudflare/workers-types": "*",
+		"@electric-sql/pglite": "^0.5.8",
+		"@sentry/sveltekit": "^11.4.0",
+		"@sveltejs/kit": "^3.1.1",
+		"drizzle-orm": "^0.45.3",
+		"eslint": "^9.39.4",
+		"vitest": "^4.1.11",
+		"zod": "^4.6.5"
+	},
+	"peerDependenciesMeta": {
+		"@cloudflare/workers-types": {
+			"optional": true
+		},
+		"@electric-sql/pglite": {
+			"optional": true
+		},
+		"eslint": {
+			"optional": true
+		},
+		"vitest": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@bufbuild/buf": "1.73.0",
+		"@bufbuild/protoc-gen-es": "2.16.0",
+		"@cloudflare/workers-types": "5.20261005.1",
+		"@electric-sql/pglite": "0.5.8",
+		"@sentry/sveltekit": "11.4.0",
+		"@sveltejs/kit": "3.1.1",
+		"@types/pg": "8.23.1",
+		"@types/snappyjs": "0.7.1",
+		"drizzle-orm": "0.45.3",
+		"eslint": "9.39.4",
+		"prettier": "3.9.9",
+		"svelte": "5.57.3",
+		"typescript": "6.0.3",
+		"vitest": "4.1.11",
+		"zod": "4.6.5"
+	}
 }

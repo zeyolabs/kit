@@ -1,16 +1,21 @@
 {
-  "extends": "./.svelte-kit/tsconfig.json",
-  "compilerOptions": {
-    "allowJs": true,
-    "checkJs": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "sourceMap": true,
-    "strict": true,
-    "module": "NodeNext",
-    "allowArbitraryExtensions": true,
-    "moduleResolution": "NodeNext"
-  }
+	"compilerOptions": {
+		"allowJs": true,
+		"checkJs": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"noEmit": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"sourceMap": true,
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"moduleResolution": "bundler",
+		"module": "esnext",
+		"target": "esnext",
+		"types": ["@cloudflare/workers-types", "vitest/globals"]
+	},
+	"include": ["**/*.ts"],
+	"exclude": ["node_modules", "**/*.test.ts", "**/*.test-d.ts", "vitest.config*.ts"]
 }

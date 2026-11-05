@@ -1,169 +1,38 @@
-# Web-Svelte
+# @zeyolabs/kit
 
-[![npm version](https://img.shields.io/npm/v/@webamoki/web-svelte.svg)](https://www.npmjs.com/package/@webamoki/web-svelte)
+Shared server toolkit for SvelteKit 3 on Cloudflare Workers: remote-function wrappers
+(`Remote.Query/Cmd/Form`), errors and results, the per-request Cloudflare context
+(`runWithContext`, `workersEnv`), rate limiting, Turnstile, logging and monitoring, storage
+clients, utils, and the shared ESLint config.
 
-A shared Svelte UI components and utilities library.
+Published as source (TypeScript, no build step): the consuming SvelteKit app compiles it.
 
-## 🚀 Setup
-
-### 1. Install Dependency
-
-Install the library in your project via your preferred package manager:
-
-```bash
-pnpm add @webamoki/web-svelte
-```
-
-### 2. 🎨 Styling
-
-This library is built with Tailwind CSS. To ensure styles are applied correctly in your host project, follow these steps:
-
-### Theme Configuration
-
-Visit (https://www.shadcn-svelte.com/create/preview) to generate a theme.
-
-Custom variables to add after generation:
+## Install
 
 ```
-:root {
-  --success: oklch(...);
-}
-.dark {
-  --success: oklch(...);
-}
-
-@theme inline {
-  ...
-  --color-success: var(--success);
-}
+pnpm add -E @zeyolabs/kit
 ```
 
-### Main CSS Setup
+Peer dependencies: `@sveltejs/kit` 3, `drizzle-orm`, `zod`, `@sentry/sveltekit`; `eslint`,
+`vitest`, `@electric-sql/pglite` and `@cloudflare/workers-types` only for the parts that use them.
 
-In your project's main CSS entry point (e.g., `src/app.css`), include the following. Crucially, you must add the `@source` directive so Tailwind v4 scans the installed library's components for utility classes.
+## Versions
 
-```css
-@import 'tailwindcss';
-@import './theme.css';
-
-/* Tell Tailwind to scan the library for classes */
-@source '../node_modules/@webamoki/web-svelte';
-
-/* Required for the library's dark mode components */
-@custom-variant dark (&:is(.dark *));
-```
-
-> [!NOTE]
-> Adjust the relative path in `@source` if your `app.css` is deeply nested, e.g., `../../node_modules/...`.
-
----
-
-## 🛠 Local Development
-
-If you want to make changes to `@webamoki/web-svelte` and test them in a host application simultaneously without publishing:
-
-1. Clone this repository and build the library:
-   ```bash
-   git clone git@github.com:Webamoki/Web-svelte.git
-   cd Web-svelte
-   pnpm install
-   pnpm build:lib
-   ```
-2. In your host application, link the local package:
-   ```json
-   {
-     "dependencies": {
-       "@webamoki/web-svelte": "file:../Web-svelte"
-     }
-   }
-   ```
-3. Run pnpm install:
-   ```bash
-   pnpm install
-   ```
-4. Run the package watcher in the library directory to automatically rebuild on changes:
-   ```bash
-   pnpm watch
-   ```
-
-Alternatively, to develop and test components in isolation, you can use the built-in SvelteKit app:
-
-```bash
-pnpm dev
-```
-
----
-
-## 🔖 Versioning & Releases
-
-We use **Semantic Versioning** managed automatically by `semantic-release`.
-
-Every merge to `main` is automatically analysed based on each commit message to determine the correct version bump, generate a GitHub Release and publish the package to npm.
-
-- **Patch Release (`v0.0.X`)**: Minor tweaks that should not affect API
-- **Minor Release (`v0.X.0`)**: New features added in a backwards-compatible manner
-- **Major Release (`vX.0.0`)**: Any commit that makes breaking API changes
-
-If there are multiple version bumps triggered, only the highest one will take effect (major > minor > patch).
-
-Any commit causing a version bump will be displayed in the final release notes.
-
-### Commit Signature
+Date versions: `YYYY.M.D` (the release day in London; semver forbids leading zeros, so
+`2026.11.5`). One release per day.
 
 ```
-type(scope): subject
-
-footer
+pnpm release                     # sets the version, commits, tags vYYYY.M.D
+git push origin HEAD vYYYY.M.D   # the tag publishes to npm (publish.yaml)
 ```
 
-### Standard Types
+Publishing uses npm trusted publishing: the package's npmjs.com settings trust this repo's
+`publish.yaml`, so no npm token is stored anywhere.
 
-If a commit has any of these types, they cause a version bump:
+## Developing against an app
 
-- **Patch**: `fix|refactor|perf|build`
-- **Minor**: `feat`
+`pnpm link ../kit` in the app while working on both; publish, then pin the new version.
 
-Other types not mentioned above will not trigger a version bump.
+## Checks
 
-### Scope
-
-If the commit has any of `major|minor|patch` in its scope, then it triggers a version bump regardless of its type.
-
-### Versioning Examples:
-
-```
-refactor(ui): a function   // patch - standard type
-fix: a bug                 // patch - standard type
-fix(minor): a bug          // minor - scope overrides type
-chore: comment typo        // No versioning - not a standard type
-chore(major): something    // major - scope overrides type
-ci: blah                   // No versioning - not standard
-```
-
-### Breaking Changes
-
-Commits with a breaking change automatically trigger a `major` version bump.
-
-For breaking changes, you must append `!` before the colon in the commit header as such:
-
-```
-refactor!: change api
-fix(ui)!: change button api
-```
-
-Breaking changes will be displayed separately in the release notes.
-If you want to give more detail for a breaking commit, add messages in the footer following these templates:
-
-```
-refactor!: change api
-
-BREAKING CHANGE: Remove endpoint for auth
-```
-
-```
-fix(ui)!: change button api
-
-BREAKING CHANGES: button api
-- Remove content prop
-- Add colour prop
-```
+`pnpm check`: prettier, eslint, `tsc` (source, not tests), vitest.

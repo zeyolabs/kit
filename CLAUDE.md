@@ -1,84 +1,15 @@
 # CLAUDE.md
 
-## Project Overview
+`@zeyolabs/kit`: shared, project-agnostic server toolkit for SvelteKit 3 on Cloudflare
+Workers. Used by `@zeyolabs/zeyo-ui`, `@zeyolabs/zeyo-shopping` and apps (Pure Leaves).
 
-A Svelte 5 component library for SvelteKit, providing type-safe forms, UI components, and utilities.
-
-- **Package:** `@webamoki/web-svelte`
-- **Framework:** Svelte 5 (Runes) & SvelteKit
-- **Tech Stack:** Tailwind CSS v4, Zod, Superforms, Bits UI, Lucide Svelte.
-
-## Package Management
-
-Use `pnpm`, never use `npm`.
-
-- `pnpm test` to run vitest
-- `pnpm fmt` to run prettier
-- `pnpm lint:es` to run eslint
-- `pnpm lint:svelte` to run svelte check
-- `pnpm check` to run fmt, lint and test. Checks altogether.
-
-## Guidelines
-
-1. **Type Safety:** Always use **Zod** (v4) for runtime validation and type definitions. Import from `$lib/shared/utils/zod.js`.
-2. **UI Components:** Use **shadcn**, **bits-ui**, and **Tailwind CSS v4** to build/extend UI components. Shadcn components are in `src/lib/shadcn/components/ui`. Never edit the shadcn-generated components but if custom classes are required create or edit existing wrappers.
-3. **Consistency:** Follow existing patterns in `src/lib/shared/components/form` for new fields.
-
-## Core Features
-
-### 1. Form System (`src/lib/shared/components/form`)
-
-Type-safe form handling via `superforms` and `zod`.
-
-- **`Form`**: Main wrapper with validation.
-- **`Button`**: Submission with loading states.
-- **Field Components**: `TextField`, `PasswordField`, `NumberField`, `DateField`, `SelectField`, etc.
-- **Icon Support**: Fields use `IconInputWrapper` for Lucide icons.
-- **Server Handlers**: Located in `src/lib/shared/server/form-handler.ts`.
-
-#### Migration: old forms -> new form system
-
-Migrating from the legacy `form-old` (superforms + `FieldWrapper`) to the new remote-form system (`form/`, SvelteKit remote forms). When building or migrating fields:
-
-- New field components live in `src/lib/shared/components/form/fields/` and take a `form` prop typed as `Omit<RemoteForm<Input, unknown>, 'for'> | RemoteForm<Input, unknown>` with `<script generics="Input extends RemoteFormInput">`.
-- **`Button` must accept the `form` prop whenever one is available.** Passing `form` drives the automatic pending/loading animation. Do not drop the `form` prop to dodge type errors — make the component generic over `Input extends RemoteFormInput` so typed forms stay assignable.
-- Legacy components remain in `form-old/` only for fields not yet migrated.
-
-### 2. UI Components (`src/lib/shared/components/ui`)
-
-Higher-level UI components:
-
-- `Choice`, `ChoiceMulti`, `WeekdayChoice`, `WeekdayChoiceMulti`.
-- `ContextMenu`, `SearchBar`, `Draggable`, `Dropzone`.
-
-### 3. Utilities (`src/lib/shared/utils`)
-
-- `datetime`: `@internationalized/date` integration.
-- `form`: `prepareForm`.
-- `email`: AWS SES via Web Crypto API.
-- `search`: Fuzzy search and highlighting.
-
-### Svelte MCP
-
-Use these tools to maintain strictly correct Svelte 5 code:
-
-1. **`list-sections`** — Call FIRST for any Svelte/SvelteKit query to map relevant documentation sections.
-2. **`get-documentation`** — Fetch the content for the identified sections before writing code.
-3. **`svelte-autofixer`** — **MANDATORY.** Run this on all Svelte code blocks before presenting them. Repeat until 0 issues remain.
-
-### Context7 MCP
-
-Use Context7 for documentation grounding on the core stack. When looking up docs, use these library IDs:
-
-- `/sveltejs/svelte` (Svelte 5 / Runes)
-- `/sveltejs/kit`
-- `/tailwindlabs/tailwindcss`
-- `/huntabyte/bits-ui`
-- `/huntabyte/shadcn-svelte`
-- `/colinhacks/zod`
-- `/microsoft/typescript`
-
-## Common Workflows
-
-- **New Form**: Define Zod schema -> Initialize with `prepareForm()` -> Use `Form` + Field components.
-- **New Field**: Extend existing fields or use `IconInputWrapper` for consistent styling.
+- Nothing project-specific goes here (no brand, no site names, no secret values).
+- Shipped as source: exports point at `.ts` files; the app's Vite build compiles them. Keep every
+  `exports` path working, and add new public files to both `exports` and `files`.
+- Workers runtime only at runtime: no Node APIs outside tooling (`eslint-config.js`, tests).
+- Kit 3: a file with a `remote` segment in its name is a remote module, so the wrappers live in
+  `server/remote-functions.ts`. Bindings come from `cloudflare/workers-env.ts`
+  (`cloudflare:workers`), never `event.platform`.
+- Dependency versions are exact; `@sveltejs/kit`, `drizzle-orm`, `zod` and `@sentry/sveltekit` are
+  peers so the app's single copy is used.
+- Releases are date versions via `pnpm release` (see README). Run `pnpm check` before releasing.
