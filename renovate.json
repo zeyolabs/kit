@@ -1,0 +1,56 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": ["config:recommended"],
+	"timezone": "Europe/London",
+	"schedule": ["before 9am on monday"],
+	"rangeStrategy": "pin",
+	"minimumReleaseAge": "1 day",
+	"dependencyDashboard": true,
+	"packageRules": [
+		{
+			"description": "Peer ranges stay ranges; only widen them when a new major is out.",
+			"matchDepTypes": ["peerDependencies"],
+			"rangeStrategy": "widen"
+		},
+		{
+			"groupName": "svelte and sveltekit",
+			"matchPackageNames": [
+				"svelte",
+				"svelte-check",
+				"@sveltejs/**",
+				"prettier-plugin-svelte",
+				"eslint-plugin-svelte",
+				"svelte-eslint-parser"
+			]
+		},
+		{
+			"groupName": "eslint",
+			"matchPackageNames": [
+				"eslint",
+				"@eslint/**",
+				"typescript-eslint",
+				"eslint-config-*",
+				"eslint-plugin-*"
+			]
+		},
+		{
+			"groupName": "cloudflare",
+			"matchPackageNames": ["wrangler", "@cloudflare/**"]
+		},
+		{
+			"groupName": "tailwind",
+			"matchPackageNames": ["tailwindcss", "@tailwindcss/**"]
+		},
+		{
+			"groupName": "sentry",
+			"matchPackageNames": ["@sentry/**"]
+		},
+		{
+			"description": "Our own packages: take a new release straight away (pnpm-workspace.yaml exempts them from pnpm's release-age delay too).",
+			"groupName": "zeyolabs packages",
+			"matchPackageNames": ["@zeyolabs/**"],
+			"minimumReleaseAge": null,
+			"schedule": ["at any time"]
+		}
+	]
+}
