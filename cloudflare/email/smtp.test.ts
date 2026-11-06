@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const send = vi.hoisted(() => vi.fn(async (..._args: unknown[]) => undefined));
 vi.mock('worker-mailer', () => ({ WorkerMailer: { send } }));
 
-import { SmtpClient, smtpConnection } from './client';
+import { SmtpClient, smtpConnection } from './smtp';
 
 const settings = { host: 'smtp.example.com', password: 'pw', port: 587, username: 'user' };
 const log = { error: vi.fn(async () => undefined) };

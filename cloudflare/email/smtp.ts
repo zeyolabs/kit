@@ -1,5 +1,5 @@
 import { envStore } from '../../utils/env';
-import { BaseEmailClient, type EmailInput, type EmailSender } from '../email/base';
+import { BaseEmailClient, type EmailInput, type EmailSender } from './base';
 
 // Email over SMTP (e.g. Amazon SES) with `worker-mailer`, which speaks SMTP over
 // `cloudflare:sockets`: for sending to any recipient, where a `send_email` binding

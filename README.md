@@ -61,7 +61,7 @@ in 15 minutes; passkeys are verified server-side (ES256/RS256, user verification
 
 `IEmailClient` (`deliver` throws, `send` logs and returns `false`) has two transports on
 `BaseEmailClient`: `EmailClient` (`cloudflare/email`, a Workers `send_email` binding) and
-`SmtpClient` (`cloudflare/smtp`, e.g. Amazon SES, any recipient; `SmtpClient.fromEnv(keys, sender)`
+`SmtpClient` (`cloudflare/email/smtp`, e.g. Amazon SES, any recipient; `SmtpClient.fromEnv(keys, sender)`
 reads the settings from the request context). `DevEmailClient` prints instead of sending and
 `FakeEmailClient` records messages for tests; both work in place of either transport.
 
