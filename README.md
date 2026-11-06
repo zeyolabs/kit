@@ -18,14 +18,11 @@ Peer dependencies: `@sveltejs/kit` 3, `drizzle-orm`, `zod`, `@sentry/sveltekit`;
 
 ## Versions
 
-Date versions: `YYYY.MMDD.N`: the release day in London as month × 100 + day (semver forbids
-leading zeros, so 6 November is `1106` and 5 January `105`), then that day's release count from 0:
-`2026.1106.0`, `2026.1106.1`, `2026.1107.0`. Earlier releases used `YYYY.M.D` (`2026.11.6`).
-
-```
-pnpm release                          # sets the version, commits, tags vYYYY.MMDD.N
-git push origin HEAD vYYYY.MMDD.N      # the tag publishes to npm (publish.yaml)
-```
+Every merge to `main` publishes a new version (`.github/workflows/publish.yaml`). There is no
+release step. Versions are `YYYY.M.N` in London time: `N` counts that month's releases and resets
+each month (`2026.11.7`, `2026.11.8`, then `2026.12.0`). CI sets the version and pushes the
+`vYYYY.M.N` tag; `package.json`'s version in the repo is not updated. Changes to only docs or CI
+don't publish.
 
 Publishing uses npm trusted publishing: the package's npmjs.com settings trust this repo's
 `publish.yaml`, so no npm token is stored anywhere.
