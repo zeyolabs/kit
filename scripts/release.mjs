@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Date versioning: the version is the release day in London, YYYY.M.D (semver forbids leading
-// zeros, so 2026.11.5 not 2026.11.05). One release per package per day.
-// Sets package.json, commits `release: vYYYY.M.D` and tags it. Pushing the tag publishes (publish.yaml).
+// Date versioning: YYYY.MMDD.N, where MMDD is the release day in London as month × 100 + day
+// (semver forbids leading zeros, so 5 January is 105 and 6 November is 1106) and N counts that
+// day's releases from 0. So 2026.1106.0, then 2026.1106.1 the same day, then 2026.1107.0.
+// Sets package.json, commits `release: vX` and tags it. Pushing the tag publishes (publish.yaml).
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 
@@ -17,19 +18,21 @@ const parts = Object.fromEntries(
 		.formatToParts(new Date())
 		.map(({ type, value }) => [type, value])
 );
-const version = `${Number(parts.year)}.${Number(parts.month)}.${Number(parts.day)}`;
-const tag = `v${version}`;
+const day = `${Number(parts.year)}.${Number(parts.month) * 100 + Number(parts.day)}`;
 
 if (git('status', '--porcelain')) {
 	console.error('Working tree is not clean: commit or stash first.');
 	process.exit(1);
 }
-if (git('tag', '--list', tag)) {
-	console.error(
-		`${tag} already exists: one release per day. Release tomorrow, or ship it in that one.`
-	);
-	process.exit(1);
-}
+
+// Today's earlier releases, including ones only on the remote.
+git('fetch', '--tags', '--quiet');
+const today = git('tag', '--list', `v${day}.*`)
+	.split('\n')
+	.filter(Boolean)
+	.map((tag) => Number(tag.slice(`v${day}.`.length)));
+const version = `${day}.${today.length ? Math.max(...today) + 1 : 0}`;
+const tag = `v${version}`;
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 pkg.version = version;

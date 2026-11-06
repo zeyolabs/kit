@@ -18,12 +18,13 @@ Peer dependencies: `@sveltejs/kit` 3, `drizzle-orm`, `zod`, `@sentry/sveltekit`;
 
 ## Versions
 
-Date versions: `YYYY.M.D` (the release day in London; semver forbids leading zeros, so
-`2026.11.5`). One release per day.
+Date versions: `YYYY.MMDD.N`: the release day in London as month × 100 + day (semver forbids
+leading zeros, so 6 November is `1106` and 5 January `105`), then that day's release count from 0:
+`2026.1106.0`, `2026.1106.1`, `2026.1107.0`. Earlier releases used `YYYY.M.D` (`2026.11.6`).
 
 ```
-pnpm release                     # sets the version, commits, tags vYYYY.M.D
-git push origin HEAD vYYYY.M.D   # the tag publishes to npm (publish.yaml)
+pnpm release                          # sets the version, commits, tags vYYYY.MMDD.N
+git push origin HEAD vYYYY.MMDD.N      # the tag publishes to npm (publish.yaml)
 ```
 
 Publishing uses npm trusted publishing: the package's npmjs.com settings trust this repo's
