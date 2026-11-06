@@ -9,6 +9,7 @@ import type { AuthUser } from './sessions';
 import { logger } from '../server/logger';
 import { Schema } from '../utils/schema';
 import { auth, FRESH_SESSION_MS, sessionCookieAttributes } from './config';
+import { magicLinkEmail } from './email';
 import { authLocals } from './handle';
 import { consumeMagicLinkToken, issueMagicLinkToken, MAGIC_LINK_TTL_MS } from './magic-link';
 import {
@@ -139,11 +140,10 @@ async function emailLink(event: RequestEvent): Promise<never> {
 		url.searchParams.set('token', token);
 		if (next !== '/') url.searchParams.set('next', next);
 		try {
-			await auth().sendMagicLink({
-				email,
-				expiresInMinutes: MAGIC_LINK_TTL_MS / 60_000,
-				url: url.href,
-			});
+			const message = { email, expiresInMinutes: MAGIC_LINK_TTL_MS / 60_000, url: url.href };
+			await auth()
+				.email()
+				.deliver({ to: email, ...magicLinkEmail(auth().emailBrand, message) });
 		} catch (err) {
 			logger.error(err, { op: 'auth.magic-link.send' });
 			toLogin('send', next);

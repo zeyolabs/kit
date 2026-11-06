@@ -3,7 +3,7 @@ import type { MagicLinkMessage } from './config';
 
 import { renderEmail, renderEmailText } from '../utils/email';
 
-/** A ready-made sign-in email for `sendMagicLink`: subject, HTML and plain text. */
+/** The sign-in email: subject, HTML and plain text. */
 export function magicLinkEmail(brand: EmailBrand, message: MagicLinkMessage) {
 	const params = {
 		brand,

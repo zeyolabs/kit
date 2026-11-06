@@ -1,5 +1,8 @@
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 
+import type { IEmailClient } from '../cloudflare/email/base';
+import type { EmailBrand } from '../utils/email';
+
 /** Any async drizzle SQLite client (D1 in prod). A consumer's larger, schema-bound `Db` is
  *  assignable. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,6 +19,11 @@ export type AuthConfig = {
 	/** Shown by the browser's passkey prompt and in the magic-link email. */
 	appName: string;
 	db: () => AuthDb;
+	/** Sends the sign-in email (`magicLinkEmail`): any `IEmailClient`, e.g. `SmtpClient`, or
+	 *  `DevEmailClient` locally (it prints the link). Called per request. */
+	email: () => IEmailClient;
+	/** Name and colours for the sign-in email. */
+	emailBrand: EmailBrand;
 	/** Who may sign in at all. Checked when a link is requested, when it is used, and on every
 	 *  request, so removing someone signs them out. Unknown emails get the same "check your email"
 	 *  answer as known ones but no email. */
@@ -24,8 +32,6 @@ export type AuthConfig = {
 	 *  (e.g. `example.com` for `app.example.com`) to share passkeys across its subdomains; it can't
 	 *  change later without orphaning every passkey. */
 	passkeyRpId?: string;
-	/** Delivers the link; see `magicLinkEmail` for a ready-made message. */
-	sendMagicLink: (message: MagicLinkMessage) => Promise<void>;
 };
 
 export type ResolvedAuthConfig = AuthConfig & {

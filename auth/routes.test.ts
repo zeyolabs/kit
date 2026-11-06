@@ -3,8 +3,9 @@ import type { RequestEvent } from '@sveltejs/kit';
 import { isRedirect } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { AuthDb, MagicLinkMessage } from './config';
+import type { AuthDb } from './config';
 
+import { FakeEmailClient } from '../cloudflare/email/testing';
 import { TestAuthenticator } from './__fixtures__/authenticator';
 import { createTestDb } from './__fixtures__/db';
 import { configureAuth } from './config';
@@ -14,20 +15,30 @@ import { createSession } from './sessions';
 import { findOrCreateUser } from './users';
 
 const ORIGIN = 'https://app.example.com';
+const BRAND = {
+	accent: '#000000',
+	accentDark: '#000000',
+	accentSoft: '#eeeeee',
+	name: 'Example',
+	supportEmail: 'help@example.com',
+};
+const sentLink = (i = 0) =>
+	new URL(/https:\/\/\S+?token=[0-9a-f]+[^\s"]*/.exec(mail.sent[i].text!)![0]);
 
 let db: AuthDb;
-let sent: MagicLinkMessage[];
+let mail: FakeEmailClient;
 let jar: Map<string, string>;
 
 beforeEach(async () => {
 	db = await createTestDb();
-	sent = [];
+	mail = new FakeEmailClient();
 	jar = new Map();
 	configureAuth({
 		appName: 'Example',
 		db: () => db,
+		email: () => mail,
+		emailBrand: BRAND,
 		isAllowed: (email) => email.endsWith('@example.com'),
-		sendMagicLink: async (message) => void sent.push(message),
 	});
 });
 
@@ -83,8 +94,9 @@ describe('magic link flow', () => {
 			event('/auth/email', { form: { email: 'Ada@Example.com', next: '/orders' } })
 		);
 		expect(location).toBe('/login?sent=1&next=%2Forders');
-		expect(sent).toHaveLength(1);
-		const link = new URL(sent[0].url);
+		expect(mail.sent).toHaveLength(1);
+		expect(mail.sent[0]).toMatchObject({ subject: 'Sign in to Example', to: 'ada@example.com' });
+		const link = sentLink();
 		expect(link.origin + link.pathname).toBe(`${ORIGIN}/login`);
 		const token = link.searchParams.get('token')!;
 
@@ -99,7 +111,7 @@ describe('magic link flow', () => {
 	it('answers an unknown email the same way without sending anything', async () => {
 		const location = await call(event('/auth/email', { form: { email: 'eve@evil.com' } }));
 		expect(location).toBe('/login?sent=1');
-		expect(sent).toHaveLength(0);
+		expect(mail.sent).toHaveLength(0);
 	});
 
 	it('refuses cross-site posts', async () => {
@@ -135,8 +147,9 @@ describe('the handle', () => {
 		configureAuth({
 			appName: 'Example',
 			db: () => db,
+			email: () => mail,
+			emailBrand: BRAND,
 			isAllowed: () => false,
-			sendMagicLink: async () => {},
 		});
 		await expect(createAuthHandle()({ event: event('/'), resolve })).rejects.toMatchObject({
 			status: 303,

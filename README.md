@@ -2,7 +2,7 @@
 
 Shared server toolkit for SvelteKit 3 on Cloudflare Workers: remote-function wrappers
 (`Remote.Query/Cmd/Form`), errors and results, the per-request Cloudflare context
-(`runWithContext`, `workersEnv`), passwordless auth, SMTP mail, rate limiting, Turnstile, logging
+(`runWithContext`, `workersEnv`), passwordless auth, email (binding or SMTP), rate limiting, Turnstile, logging
 and monitoring, storage clients, utils, and the shared ESLint config.
 
 Published as source (TypeScript, no build step): the consuming SvelteKit app compiles it.
@@ -42,9 +42,9 @@ in 15 minutes; passkeys are verified server-side (ES256/RS256, user verification
    configureAuth({
    	appName: 'My app',
    	db: () => getDb(),
+   	email: () => (dev ? new DevEmailClient() : SmtpClient.fromEnv(smtpKeys, { from })),
+   	emailBrand: brand,
    	isAllowed: (email) => isEmailAllowed(email, env().ALLOWED_EMAILS),
-   	sendMagicLink: async (m) =>
-   		sendSmtpMail(keys, { from, to: m.email, ...magicLinkEmail(brand, m) }),
    });
    ```
 3. Hook, after the context handle: `createAuthHandle({ access })` (pass `access` to also require
@@ -56,6 +56,14 @@ in 15 minutes; passkeys are verified server-side (ES256/RS256, user verification
    button posting `token` to `/auth/verify` (so mail scanners can't use the link); its passkey
    button calls `signInWithPasskey()` from `@zeyolabs/kit/auth/passkey-client`. A settings page
    uses `passkeysLoad` and `addPasskey(name)`, and posts `id` to `/auth/passkey/delete`.
+
+## Email clients
+
+`IEmailClient` (`deliver` throws, `send` logs and returns `false`) has two transports on
+`BaseEmailClient`: `EmailClient` (`cloudflare/email`, a Workers `send_email` binding) and
+`SmtpClient` (`cloudflare/smtp`, e.g. Amazon SES, any recipient; `SmtpClient.fromEnv(keys, sender)`
+reads the settings from the request context). `DevEmailClient` prints instead of sending and
+`FakeEmailClient` records messages for tests; both work in place of either transport.
 
 ## Developing against an app
 

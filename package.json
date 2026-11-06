@@ -1,7 +1,7 @@
 {
 	"name": "@zeyolabs/kit",
 	"version": "2026.11.5",
-	"description": "Shared SvelteKit-on-Cloudflare server toolkit: remote-function wrappers, passwordless auth (magic link + passkeys), Cloudflare context, monitoring, storage clients, utils and the ESLint config.",
+	"description": "Shared SvelteKit-on-Cloudflare server toolkit: remote-function wrappers, passwordless auth (magic link + passkeys), email over a send_email binding or SMTP, Cloudflare context, monitoring, storage clients, utils and the ESLint config.",
 	"type": "module",
 	"repository": {
 		"type": "git",
@@ -55,6 +55,7 @@
 		"./cloudflare/email/testing": "./cloudflare/email/testing.ts",
 		"./cloudflare/r2": "./cloudflare/r2/client.ts",
 		"./cloudflare/r2/testing": "./cloudflare/r2/testing.ts",
+		"./cloudflare/smtp": "./cloudflare/smtp/client.ts",
 		"./cloudflare/wait-until": "./cloudflare/wait-until.ts",
 		"./cloudflare/workers": "./cloudflare/workers/index.ts",
 		"./cloudflare/workers-ai": "./cloudflare/workers-ai/client.ts",
