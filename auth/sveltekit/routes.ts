@@ -12,11 +12,13 @@ import { Schema } from '../../utils/schema';
 import { acceptInvite } from '../accounts/accounts';
 import { auth, FRESH_SESSION_MS, sessionCookieAttributes } from '../config';
 import { magicLinkEmail } from '../emails';
+import { users } from '../schema';
+import { authLocals } from '../sessions/handle';
 import {
 	consumeMagicLinkToken,
 	issueMagicLinkToken,
 	MAGIC_LINK_TTL_MS,
-} from '../magic-link/magic-link';
+} from '../sessions/magic-link/magic-link';
 import {
 	authenticationOptions,
 	AuthenticationResponse,
@@ -32,9 +34,7 @@ import {
 	savePasskey,
 	verifyAuthentication,
 	verifyRegistration,
-} from '../passkeys/passkeys';
-import { users } from '../schema';
-import { authLocals } from '../sessions/handle';
+} from '../sessions/passkeys/passkeys';
 import { createSession, deleteSession } from '../sessions/sessions';
 import { emailsMatch, findOrCreateUser } from '../users';
 

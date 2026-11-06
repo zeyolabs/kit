@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { AuthDb } from '../config';
+import type { AuthDb } from '../../config';
 
-import { createTestDb } from '../__fixtures__/db';
-import { findOrCreateUser, isEmailAllowed } from '../users';
+import { createTestDb } from '../../__fixtures__/db';
+import { findOrCreateUser, isEmailAllowed } from '../../users';
 import {
 	consumeMagicLinkToken,
 	issueMagicLinkToken,

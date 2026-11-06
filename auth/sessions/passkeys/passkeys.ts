@@ -28,10 +28,10 @@ import {
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import type { AuthDb } from '../config';
-import type { AuthUser } from '../sessions/sessions';
+import type { AuthDb } from '../../config';
+import type { AuthUser } from '../sessions';
 
-import { passkeys } from '../schema';
+import { passkeys } from '../../schema';
 
 // WebAuthn passkeys, verified server-side with oslo (pure JS, runs on Workers). Only what a
 // passkey sign-in needs: no attestation (we ask for `none` and never trust a vendor's chain),

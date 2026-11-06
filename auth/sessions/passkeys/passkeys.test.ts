@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { AuthDb } from '../config';
-import type { AuthUser } from '../sessions/sessions';
+import type { AuthDb } from '../../config';
+import type { AuthUser } from '../sessions';
 
-import { TestAuthenticator } from '../__fixtures__/authenticator';
-import { createTestDb } from '../__fixtures__/db';
-import { findOrCreateUser } from '../users';
+import { TestAuthenticator } from '../../__fixtures__/authenticator';
+import { createTestDb } from '../../__fixtures__/db';
+import { findOrCreateUser } from '../../users';
 import {
 	deletePasskey,
 	findPasskey,

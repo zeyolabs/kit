@@ -4,7 +4,7 @@ import type {
 	AuthenticationResponse,
 	RegistrationResponse,
 	RelyingParty,
-} from '../passkeys/passkeys';
+} from '../sessions/passkeys/passkeys';
 
 // A software ES256 authenticator: just enough CBOR, authenticator data and DER to drive the
 // passkey ceremonies in tests with real WebCrypto signatures.

@@ -32,7 +32,8 @@ Publishing uses npm trusted publishing: the package's npmjs.com settings trust t
 ## Auth (`@zeyolabs/kit/auth/*`)
 
 `config`, `schema`, `users`, `emails` at the top; one folder per part: `sessions/` (cookie
-sessions, the auth handle), `magic-link/`, `passkeys/` (server verification, browser `client`),
+sessions, the auth handle, and the two ways in: `sessions/magic-link/` and `sessions/passkeys/`
+with its browser `client`),
 `accounts/` (accounts, permissions, the account handle, remote functions), `sveltekit/` (the
 `/auth/*` routes and page loads).
 
@@ -59,7 +60,7 @@ in 15 minutes; passkeys are verified server-side (ES256/RS256, user verification
    `export { loginLoad as load } from '@zeyolabs/kit/auth/sveltekit/loads';`.
 5. The login page (the app's own markup) posts `email` to `/auth/email`; with `?token=` it shows a
    button posting `token` to `/auth/verify` (so mail scanners can't use the link); its passkey
-   button calls `signInWithPasskey()` from `@zeyolabs/kit/auth/passkeys/client`. A settings page
+   button calls `signInWithPasskey()` from `@zeyolabs/kit/auth/sessions/passkeys/client`. A settings page
    uses `passkeysLoad` and `addPasskey(name)`, and posts `id` to `/auth/passkey/delete`.
 
 ### Accounts and policies

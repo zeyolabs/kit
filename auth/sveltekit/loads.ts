@@ -4,8 +4,8 @@ import { redirect } from '@sveltejs/kit';
 
 import { findInvite } from '../accounts/accounts';
 import { auth, FRESH_SESSION_MS } from '../config';
-import { listPasskeys } from '../passkeys/passkeys';
 import { authLocals } from '../sessions/handle';
+import { listPasskeys } from '../sessions/passkeys/passkeys';
 import { loginErrorMessage, safeNext } from './routes';
 
 type LoadEvent = Pick<RequestEvent, 'locals' | 'url'>;
