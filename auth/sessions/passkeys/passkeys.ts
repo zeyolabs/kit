@@ -1,7 +1,6 @@
 import {
 	decodePKIXECDSASignature,
 	decodeSEC1PublicKey,
-	ECDSAPublicKey,
 	p256,
 	verifyECDSASignature,
 } from '@oslojs/crypto/ecdsa';
@@ -116,6 +115,25 @@ function authenticationOptions(rp: RelyingParty, challenge: string) {
 	};
 }
 
+/** A P-256 point as uncompressed SEC1 (`04 || x || y`, each coordinate left-padded to 32 bytes).
+ *  oslo's `encodeSEC1Uncompressed` pads a coordinate with a leading zero byte on the wrong end,
+ *  which breaks about 1 in 256 keys. */
+function encodeP256Point(x: bigint, y: bigint): Uint8Array {
+	const out = new Uint8Array(65);
+	out[0] = 0x04;
+	for (const [offset, value] of [
+		[1, x],
+		[33, y],
+	] as const) {
+		let v = value;
+		for (let i = offset + 31; i >= offset; i--) {
+			out[i] = Number(v & 0xffn);
+			v >>= 8n;
+		}
+	}
+	return out;
+}
+
 function decode(value: string, what: string): Uint8Array {
 	try {
 		return decodeBase64urlIgnorePadding(value);
@@ -165,7 +183,7 @@ function verifyRegistration(response: RegistrationResponse, challenge: string, r
 	if (algorithm === coseAlgorithmES256 && key.type() === COSEKeyType.EC2) {
 		const ec2 = key.ec2();
 		if (ec2.curve !== coseEllipticCurveP256) throw new PasskeyError('Unsupported curve');
-		publicKey = new ECDSAPublicKey(p256, ec2.x, ec2.y).encodeSEC1Uncompressed();
+		publicKey = encodeP256Point(ec2.x, ec2.y);
 	} else if (algorithm === coseAlgorithmRS256 && key.type() === COSEKeyType.RSA) {
 		const rsa = key.rsa();
 		publicKey = new RSAPublicKey(rsa.n, rsa.e).encodePKCS1();

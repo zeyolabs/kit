@@ -123,6 +123,28 @@ describe('authentication', () => {
 	});
 });
 
+describe('keys whose coordinate starts with a zero byte', () => {
+	it('still verify (about 1 in 128 real keys)', async () => {
+		let unusual: null | TestAuthenticator = null;
+		for (let i = 0; i < 2000 && !unusual; i++) {
+			const candidate = await TestAuthenticator.create();
+			if (await candidate.hasLeadingZeroCoordinate()) unusual = candidate;
+		}
+		expect(unusual).not.toBeNull();
+		const challenge = Passkeys.newChallenge();
+		const credential = Passkeys.verifyRegistration(
+			await unusual!.register(challenge, rp),
+			challenge,
+			rp
+		);
+		const login = Passkeys.newChallenge();
+		const response = await unusual!.signIn(login, rp);
+		expect(
+			Passkeys.verifyAuthentication(response, login, rp, { ...credential, signCount: 0 })
+		).toBe(0);
+	});
+});
+
 describe('Passkeys.delete', () => {
 	it("only deletes the user's own passkey", async () => {
 		const stored = await registered();

@@ -74,6 +74,12 @@ export class TestAuthenticator {
 		return new TestAuthenticator(keys);
 	}
 
+	/** Whether the public key's x or y coordinate starts with a zero byte. */
+	async hasLeadingZeroCoordinate(): Promise<boolean> {
+		const raw = new Uint8Array(await crypto.subtle.exportKey('raw', this.keys.publicKey));
+		return raw[1] === 0 || raw[33] === 0;
+	}
+
 	async register(challenge: string, rp: RelyingParty): Promise<RegistrationResponse> {
 		const raw = new Uint8Array(await crypto.subtle.exportKey('raw', this.keys.publicKey));
 		const coseKey = cbor({
