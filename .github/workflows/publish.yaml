@@ -45,8 +45,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
-      # Trusted publishing needs npm 11.5.1 or newer.
-      - run: npm install -g npm@latest && npm publish
+      # Trusted publishing needs npm 11.5.1 or newer. `--tag latest`: the version just published is
+      # always latest, even next to a stray higher one (e.g. ui 2026.1106.0).
+      - run: npm install -g npm@latest && npm publish --tag latest
       - name: Tag
         run: |
           git tag "v${{ steps.version.outputs.version }}"
