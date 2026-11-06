@@ -1,6 +1,6 @@
 {
 	"name": "@zeyolabs/kit",
-	"version": "2026.11.5",
+	"version": "2026.11.6",
 	"description": "Shared SvelteKit-on-Cloudflare server toolkit: remote-function wrappers, passwordless auth (magic link + passkeys), email over a send_email binding or SMTP, Cloudflare context, monitoring, storage clients, utils and the ESLint config.",
 	"type": "module",
 	"repository": {
