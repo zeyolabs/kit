@@ -36,7 +36,7 @@ function event(
 	init: { body?: unknown; form?: Record<string, string>; method?: string; origin?: string } = {}
 ): RequestEvent {
 	const url = new URL(path, ORIGIN);
-	const headers = new Headers({ origin: init.origin ?? ORIGIN });
+	const headers = new Headers({ accept: 'text/html', origin: init.origin ?? ORIGIN });
 	let body: BodyInit | undefined;
 	if (init.form) body = new URLSearchParams(init.form);
 	if (init.body) {
@@ -119,6 +119,9 @@ describe('the handle', () => {
 		});
 		const api = await handle({ event: event('/_app/remote/abc/list'), resolve });
 		expect((api as Response).status).toBe(401);
+		const socket = event('/realtime/topic');
+		socket.request.headers.delete('accept');
+		expect(((await handle({ event: socket, resolve })) as Response).status).toBe(401);
 		expect(resolve).not.toHaveBeenCalled();
 	});
 

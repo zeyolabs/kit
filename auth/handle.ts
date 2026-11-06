@@ -35,9 +35,12 @@ export const authLocals = (event: RequestEvent) => event.locals as unknown as Au
 const matches = (pathname: string, paths: readonly string[]) =>
 	paths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
-/** Remote calls, non-GET requests and other fetches get a 401, not a redirect to a login page. */
+/** Remote calls, non-GET requests, WebSockets and other fetches (anything that isn't a browser
+ *  asking for a page) get a 401, not a redirect to a login page. */
 const isApiRequest = (event: RequestEvent) =>
-	event.request.method !== 'GET' || event.url.pathname.startsWith('/_app/remote');
+	event.request.method !== 'GET' ||
+	event.url.pathname.startsWith('/_app/remote') ||
+	!(event.request.headers.get('accept') ?? '').includes('text/html');
 
 /**
  * The auth gate, for `sequence(...)` after the context handle:
