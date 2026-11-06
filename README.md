@@ -57,6 +57,26 @@ in 15 minutes; passkeys are verified server-side (ES256/RS256, user verification
    button calls `signInWithPasskey()` from `@zeyolabs/kit/auth/passkey-client`. A settings page
    uses `passkeysLoad` and `addPasskey(name)`, and posts `id` to `/auth/passkey/delete`.
 
+### Accounts and policies
+
+Accounts own resources; users reach them through a membership. Resource tables carry
+`account_id`, never `user_id`. Tables: `accounts`, `account_members`, `account_policies`,
+`account_invites` (same `schema.ts`).
+
+- **Policies.** Every member has one. Built in: `owner` (everything, can't be edited), `admin`
+  (all but `policies.manage`), `member` (the app's `memberPermissions`). An account can add its own
+  from permission keys (`resource.action`, or `resource.*`); the app lists its keys in
+  `configureAuth({ accounts: { permissions, memberPermissions } })`. Only owners confer ownership,
+  and an account always keeps at least one owner.
+- **Which account.** `createAccountHandle({ slug: slugFromRoute('account') })` after the auth handle
+  sets `locals.account` and `locals.membership` (404 for non-members). Remote functions call
+  `requirePermission(event, 'projects.edit')`, or `can(membership, key)` in pages.
+- **Invite only.** `isAllowed: (email) => hasAccountAccess(db, email)`; invites are emailed links
+  to the app's `/invite` page (`inviteLoad`), accepted by posting to `/auth/invite/accept`.
+  `onSignIn` can bootstrap the first owners.
+- **Management.** `@zeyolabs/kit/auth/accounts.remote` has the queries and commands a members page
+  needs (members, invites, policies), each checking the caller's permissions.
+
 ## Email clients
 
 `IEmailClient` (`deliver` throws, `send` logs and returns `false`) has two transports on

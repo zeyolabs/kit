@@ -8,6 +8,7 @@ import type { AuthDb } from './config';
 import { FakeEmailClient } from '../cloudflare/email/testing';
 import { TestAuthenticator } from './__fixtures__/authenticator';
 import { createTestDb } from './__fixtures__/db';
+import { createAccount, createInvite, resolveMembership } from './accounts';
 import { configureAuth } from './config';
 import { createAuthHandle } from './handle';
 import { POST, safeNext } from './routes';
@@ -15,6 +16,7 @@ import { createSession } from './sessions';
 import { findOrCreateUser } from './users';
 
 const ORIGIN = 'https://app.example.com';
+const CATALOGUE = { memberPermissions: [], permissions: [] };
 const BRAND = {
 	accent: '#000000',
 	accentDark: '#000000',
@@ -34,6 +36,7 @@ beforeEach(async () => {
 	mail = new FakeEmailClient();
 	jar = new Map();
 	configureAuth({
+		accounts: CATALOGUE,
 		appName: 'Example',
 		db: () => db,
 		email: () => mail,
@@ -145,6 +148,7 @@ describe('the handle', () => {
 		expect(resolve).toHaveBeenCalledOnce();
 
 		configureAuth({
+			accounts: CATALOGUE,
 			appName: 'Example',
 			db: () => db,
 			email: () => mail,
@@ -200,5 +204,30 @@ describe('passkey flow', () => {
 		await signedIn(60 * 60 * 1000);
 		const options = await json(event('/auth/passkey/register-options', { body: {} }));
 		expect(options).toMatchObject({ body: { reauth: true }, status: 403 });
+	});
+});
+
+describe('invite flow', () => {
+	it('sends a signed-out invitee to log in, then joins them to the account', async () => {
+		const owner = await findOrCreateUser(db, 'ada@example.com');
+		const account = await createAccount(db, { name: 'Acme', slug: 'acme' }, owner.id);
+		const ownerMembership = await resolveMembership(db, CATALOGUE, account.id, owner.id);
+		const token = await createInvite(db, CATALOGUE, ownerMembership!, {
+			email: 'carol@example.com',
+			policy: 'member',
+		});
+
+		const signedOut = await call(event('/auth/invite/accept', { form: { token } }));
+		expect(signedOut).toBe(`/login?next=${encodeURIComponent(`/invite?token=${token}`)}`);
+
+		const carol = await findOrCreateUser(db, 'carol@example.com');
+		jar.set('session', (await createSession(db, carol.id)).token);
+		expect(await call(event('/auth/invite/accept', { form: { token } }))).toBe('/acme');
+		expect((await resolveMembership(db, CATALOGUE, account.id, carol.id))?.policy.key).toBe(
+			'member'
+		);
+
+		// Used up: a second accept goes back to the invite page with the error.
+		expect(await call(event('/auth/invite/accept', { form: { token } }))).toMatch(/error=404$/);
 	});
 });

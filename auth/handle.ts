@@ -4,6 +4,7 @@ import type { Handle } from '@sveltejs/kit/hooks';
 import { redirect } from '@sveltejs/kit';
 
 import type { AccessConfig } from '../cloudflare/access';
+import type { AccountLocals } from './account-handle';
 import type { AuthSession, AuthUser } from './sessions';
 
 import { ACCESS_JWT_HEADER, verifyAccessJwt } from '../cloudflare/access';
@@ -13,7 +14,7 @@ import { deleteSession, needsRenewal, renewSession, validateSession } from './se
 import { emailsMatch } from './users';
 
 /** What the handle puts on `event.locals`. Apps extend it: `interface Locals extends AuthLocals`. */
-export type AuthLocals = {
+export type AuthLocals = AccountLocals & {
 	/** The Cloudflare Access email when Access sits in front, else null. */
 	accessEmail: null | string;
 	session: AuthSession | null;
@@ -58,6 +59,8 @@ export function createAuthHandle(options: AuthHandleOptions = {}): Handle {
 		locals.accessEmail = null;
 		locals.session = null;
 		locals.user = null;
+		locals.account = null;
+		locals.membership = null;
 
 		const devEmail = options.devAccessEmail?.() ?? null;
 		const access = devEmail ? null : (options.access?.() ?? null);
@@ -78,7 +81,7 @@ export function createAuthHandle(options: AuthHandleOptions = {}): Handle {
 			const live = await validateSession(db, token);
 			const ok =
 				live &&
-				config.isAllowed(live.user.email) &&
+				(await config.isAllowed(live.user.email)) &&
 				(!locals.accessEmail || emailsMatch(locals.accessEmail, live.user.email));
 			if (ok) {
 				locals.session = live.session;

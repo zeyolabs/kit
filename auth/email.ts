@@ -24,3 +24,29 @@ export function magicLinkEmail(brand: EmailBrand, message: MagicLinkMessage) {
 		text: renderEmailText(params),
 	};
 }
+
+/** An invitation to join an account. */
+export function inviteEmail(
+	brand: EmailBrand,
+	invite: { accountName: string; inviter: string; url: string }
+) {
+	const params = {
+		brand,
+		cta: { href: invite.url, label: `Join ${invite.accountName}` },
+		eyebrow: 'Invitation',
+		footnote:
+			'The invitation works once and expires in 7 days. Ignore this email if you were not expecting it.',
+		heading: `Join ${invite.accountName} on ${brand.name}`,
+		intro: [
+			`${invite.inviter} invited you to ${invite.accountName}.`,
+			'Sign in with this email address to accept.',
+		],
+		preheader: `${invite.inviter} invited you to ${invite.accountName}`,
+		sections: [],
+	};
+	return {
+		html: renderEmail(params),
+		subject: `Join ${invite.accountName} on ${brand.name}`,
+		text: renderEmailText(params),
+	};
+}

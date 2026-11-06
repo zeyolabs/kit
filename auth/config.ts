@@ -2,6 +2,8 @@ import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 
 import type { IEmailClient } from '../cloudflare/email/base';
 import type { EmailBrand } from '../utils/email';
+import type { PermissionCatalogue } from './permissions';
+import type { AuthUser } from './sessions';
 
 /** Any async drizzle SQLite client (D1 in prod). A consumer's larger, schema-bound `Db` is
  *  assignable. */
@@ -16,6 +18,8 @@ export type MagicLinkMessage = {
 };
 
 export type AuthConfig = {
+	/** The app's permission keys and what plain members get (see `permissions.ts`). */
+	accounts: PermissionCatalogue;
 	/** Shown by the browser's passkey prompt and in the magic-link email. */
 	appName: string;
 	db: () => AuthDb;
@@ -26,8 +30,11 @@ export type AuthConfig = {
 	emailBrand: EmailBrand;
 	/** Who may sign in at all. Checked when a link is requested, when it is used, and on every
 	 *  request, so removing someone signs them out. Unknown emails get the same "check your email"
-	 *  answer as known ones but no email. */
-	isAllowed: (email: string) => boolean;
+	 *  answer as known ones but no email. Invite-only apps use `hasAccountAccess` (a member of
+	 *  some account, or invited to one). */
+	isAllowed: (email: string) => boolean | Promise<boolean>;
+	/** Runs after each sign-in, e.g. to make bootstrap emails owners of the app's account. */
+	onSignIn?: (user: AuthUser) => Promise<void>;
 	/** The passkey domain (WebAuthn RP id). Default: the request's hostname. Set a parent domain
 	 *  (e.g. `example.com` for `app.example.com`) to share passkeys across its subdomains; it can't
 	 *  change later without orphaning every passkey. */
@@ -35,7 +42,11 @@ export type AuthConfig = {
 };
 
 export type ResolvedAuthConfig = AuthConfig & {
+	/** Where an accepted invite lands. Default: `/<slug>`. */
+	accountHome: (slug: string) => string;
 	cookieName: string;
+	/** The page that shows an invite (`inviteLoad`). Default: `/invite`. */
+	invitePath: string;
 	loginPath: string;
 };
 
@@ -44,9 +55,15 @@ let current: null | ResolvedAuthConfig = null;
 /** Registers the app's auth config. Call once at module scope (e.g. next to `secretNames`), so
  *  importing the hooks file registers it. */
 export function configureAuth(
-	config: AuthConfig & { cookieName?: string; loginPath?: string }
+	config: AuthConfig & Partial<Omit<ResolvedAuthConfig, keyof AuthConfig>>
 ): void {
-	current = { cookieName: 'session', loginPath: '/login', ...config };
+	current = {
+		accountHome: (slug) => `/${slug}`,
+		cookieName: 'session',
+		invitePath: '/invite',
+		loginPath: '/login',
+		...config,
+	};
 }
 
 export function auth(): ResolvedAuthConfig {

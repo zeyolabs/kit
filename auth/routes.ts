@@ -7,7 +7,9 @@ import { z } from 'zod';
 import type { AuthUser } from './sessions';
 
 import { logger } from '../server/logger';
+import { ServiceError } from '../utils/errors';
 import { Schema } from '../utils/schema';
+import { acceptInvite } from './accounts';
 import { auth, FRESH_SESSION_MS, sessionCookieAttributes } from './config';
 import { magicLinkEmail } from './email';
 import { authLocals } from './handle';
@@ -43,6 +45,7 @@ import { emailsMatch, findOrCreateUser } from './users';
 //   POST /auth/passkey/register-options json              -> creation options (fresh session)
 //   POST /auth/passkey/register       json {credential, name} -> {ok}
 //   POST /auth/passkey/delete         form {id, next}     -> 303 next
+//   POST /auth/invite/accept          form {token}        -> joins the account, 303 its home
 //
 // The emailed link opens the login page (`?token=`), which posts it here from a button: mail
 // scanners that prefetch links can't burn the token or sign anyone in.
@@ -75,8 +78,8 @@ function toLogin(error: LoginError | null, next: string, sent = false): never {
 }
 
 /** Checks a would-be session user against the allowlist and the Access identity. */
-function refusal(event: RequestEvent, email: string): LoginError | null {
-	if (!auth().isAllowed(email)) return 'not_allowed';
+async function refusal(event: RequestEvent, email: string): Promise<LoginError | null> {
+	if (!(await auth().isAllowed(email))) return 'not_allowed';
 	const { accessEmail } = authLocals(event);
 	if (accessEmail && !emailsMatch(accessEmail, email)) return 'mismatch';
 	return null;
@@ -88,6 +91,7 @@ async function signIn(event: RequestEvent, user: AuthUser): Promise<void> {
 		...sessionCookieAttributes,
 		expires: new Date(expiresAt),
 	});
+	await auth().onSignIn?.(user);
 }
 
 function setChallenge(event: RequestEvent): string {
@@ -129,7 +133,7 @@ async function emailLink(event: RequestEvent): Promise<never> {
 	if (!parsed.success) toLogin('send', next);
 	const email = parsed.data;
 
-	const refused = refusal(event, email);
+	const refused = await refusal(event, email);
 	// Unknown emails get the same answer as known ones, so the form can't probe the allowlist.
 	if (refused === 'not_allowed') toLogin(null, next, true);
 	if (refused) toLogin(refused, next);
@@ -157,7 +161,7 @@ async function verifyLink(event: RequestEvent): Promise<never> {
 	const next = safeNext(form.get('next'));
 	const email = await consumeMagicLinkToken(auth().db(), String(form.get('token') ?? ''));
 	if (!email) toLogin('expired', next);
-	const refused = refusal(event, email);
+	const refused = await refusal(event, email);
 	if (refused) toLogin(refused, next);
 	await signIn(event, await findOrCreateUser(auth().db(), email));
 	redirect(303, next);
@@ -187,7 +191,7 @@ async function passkeyLogin(event: RequestEvent): Promise<Response> {
 			passkey
 		);
 		const [user] = await db.select().from(users).where(eq(users.id, passkey.userId)).limit(1);
-		const refused = refusal(event, user.email);
+		const refused = await refusal(event, user.email);
 		if (refused) return json({ code: refused, message: 'Not allowed' }, { status: 403 });
 		await recordPasskeyUse(db, passkey.id, signCount);
 		await signIn(event, user);
@@ -238,8 +242,23 @@ async function passkeyDelete(event: RequestEvent): Promise<never> {
 	redirect(303, next);
 }
 
+/** Accepts an invite for the signed-in user (the invite page posts here) and opens the account. */
+async function invite(event: RequestEvent): Promise<never> {
+	const form = await event.request.formData();
+	const token = String(form.get('token') ?? '');
+	const { user } = authLocals(event);
+	const invitePage = `${auth().invitePath}?token=${encodeURIComponent(token)}`;
+	if (!user) toLogin(null, invitePage);
+	const account = await acceptInvite(auth().db(), token, user).catch((err: unknown) => {
+		if (err instanceof ServiceError) redirect(303, `${invitePage}&error=${err.status}`);
+		throw err;
+	});
+	redirect(303, auth().accountHome(account.slug));
+}
+
 const handlers: Record<string, (event: RequestEvent) => Promise<Response>> = {
 	email: emailLink,
+	'invite/accept': invite,
 	logout,
 	'passkey/delete': passkeyDelete,
 	'passkey/login': passkeyLogin,

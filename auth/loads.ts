@@ -2,6 +2,7 @@ import type { RequestEvent } from '@sveltejs/kit';
 
 import { redirect } from '@sveltejs/kit';
 
+import { findInvite } from './accounts';
 import { auth, FRESH_SESSION_MS } from './config';
 import { authLocals } from './handle';
 import { listPasskeys } from './passkeys';
@@ -34,5 +35,19 @@ export async function passkeysLoad(event: LoadEvent) {
 	return {
 		fresh: Date.now() - session.createdAt <= FRESH_SESSION_MS,
 		passkeys: await listPasskeys(auth().db(), user.id),
+	};
+}
+
+/** The invite page's load (`/invite?token=`): who invited whom to what. Signed-out visitors are
+ *  already sent to the login page by the auth handle and come back here. */
+export async function inviteLoad(event: LoadEvent) {
+	const { user } = authLocals(event as RequestEvent);
+	const token = event.url.searchParams.get('token') ?? '';
+	const invite = await findInvite(auth().db(), token);
+	return {
+		error: event.url.searchParams.get('error'),
+		invite: invite && { accountName: invite.account.name, email: invite.email },
+		signedInAs: user?.email ?? null,
+		token,
 	};
 }
