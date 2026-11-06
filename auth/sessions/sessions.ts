@@ -13,7 +13,8 @@ import { sessions, users } from '../schema';
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 const SESSION_RENEW_BELOW_MS = 15 * 24 * 60 * 60 * 1000;
 
-/** Session cookie: host-only (no `domain`), `secure` always (browsers treat localhost as secure). */
+/** Session cookie: host-only unless the app sets `cookieDomain`, `secure` always (browsers treat
+ *  localhost as secure). */
 const sessionCookieAttributes = {
 	httpOnly: true,
 	path: '/',
