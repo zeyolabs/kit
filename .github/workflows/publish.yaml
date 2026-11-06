@@ -35,7 +35,10 @@ jobs:
         id: version
         run: |
           prefix="$(TZ=Europe/London date +%Y).$(TZ=Europe/London date +%-m)"
-          last=$(git tag --list "v$prefix.*" | sed "s/^v$prefix\.//" | grep -E '^[0-9]+$' | sort -n | tail -1)
+          name=$(node -p "require('./package.json').name")
+          # Highest N this month across git tags and npm (either may be missing a release).
+          last=$( { git tag --list "v$prefix.*" | sed 's/^v//'; npm view "$name" versions --json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{[].concat(JSON.parse(s)).forEach(v=>console.log(v))}catch{}})'; } \
+            | grep -E "^$prefix\.[0-9]+$" | sed "s/^$prefix\.//" | sort -n | tail -1)
           next="$prefix.$(( ${last:--1} + 1 ))"
           echo "version=$next" >> "$GITHUB_OUTPUT"
           echo "Publishing $next"
