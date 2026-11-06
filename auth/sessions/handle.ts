@@ -93,12 +93,13 @@ function createAuthHandle(options: AuthHandleOptions = {}): Handle {
 					locals.session = { ...live.session, expiresAt };
 					event.cookies.set(config.cookieName, token, {
 						...Sessions.cookieAttributes,
+						domain: config.cookieDomain,
 						expires: new Date(expiresAt),
 					});
 				}
 			} else {
 				if (live) await Sessions.delete(db, live.session.id);
-				event.cookies.delete(config.cookieName, { path: '/' });
+				event.cookies.delete(config.cookieName, { domain: config.cookieDomain, path: '/' });
 			}
 		}
 

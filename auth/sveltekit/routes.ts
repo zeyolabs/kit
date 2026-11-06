@@ -73,6 +73,7 @@ async function signIn(event: RequestEvent, user: AuthUser): Promise<void> {
 	const { expiresAt, token } = await Sessions.create(Auth.config().db(), user.id);
 	event.cookies.set(Auth.config().cookieName, token, {
 		...Sessions.cookieAttributes,
+		domain: Auth.config().cookieDomain,
 		expires: new Date(expiresAt),
 	});
 	await Auth.config().onSignIn?.(user);
@@ -154,7 +155,7 @@ async function verifyLink(event: RequestEvent): Promise<never> {
 async function logout(event: RequestEvent): Promise<never> {
 	const { session } = AuthHandle.locals(event);
 	if (session) await Sessions.delete(Auth.config().db(), session.id);
-	event.cookies.delete(Auth.config().cookieName, { path: '/' });
+	event.cookies.delete(Auth.config().cookieName, { domain: Auth.config().cookieDomain, path: '/' });
 	redirect(303, Auth.config().loginPath);
 }
 

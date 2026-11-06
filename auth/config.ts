@@ -22,6 +22,11 @@ export type AuthConfig = {
 	accounts: PermissionCatalogue;
 	/** Shown by the browser's passkey prompt and in the magic-link email. */
 	appName: string;
+	/** Share the session cookie with every subdomain of this domain (e.g. `example.com` for
+	 *  `app.example.com` and `mcp.example.com`), so one sign-in covers them all. Every subdomain's
+	 *  server then receives the cookie, so only set it when you control all of them. Default:
+	 *  host-only. Changing it signs everyone out once (the old cookie no longer matches). */
+	cookieDomain?: string;
 	db: () => AuthDb;
 	/** Sends the sign-in email (`magicLinkEmail`): any `IEmailClient`, e.g. `SmtpClient`, or
 	 *  `DevEmailClient` locally (it prints the link). Called per request. */
