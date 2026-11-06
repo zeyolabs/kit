@@ -12,4 +12,5 @@ Workers. Used by `@zeyolabs/ui`, `@zeyolabs/shopping` and apps (Pure Leaves).
   (`cloudflare:workers`), never `event.platform`.
 - Dependency versions are exact; `@sveltejs/kit`, `drizzle-orm`, `zod` and `@sentry/sveltekit` are
   peers so the app's single copy is used.
-- Releases are date versions via `pnpm release` (see README). Run `pnpm check` before releasing.
+- Merging to `main` publishes a new `YYYY.M.N` version automatically (see README). Never tag or
+  publish by hand.

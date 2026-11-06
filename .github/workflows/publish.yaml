@@ -1,34 +1,53 @@
 name: Publish
 
-# Pushing a vYYYY.M.D tag (made by `pnpm release`) publishes that version to npmjs.com.
-# npm trusted publishing: no token is stored; npm trusts this repo + workflow (set on the package's
-# npmjs.com settings page), and the release gets a provenance attestation.
+# Every merge to main publishes a new version to npmjs.com: no release step for anyone (human or
+# agent) to run. Versions are vYYYY.M.N in London time: N counts that month's releases
+# (2026.11.7, 2026.11.8, ...) and resets each month. package.json's version is set here only, never
+# committed. npm trusted publishing: no token; npm trusts this repo + this workflow file.
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths-ignore: ['**.md', '.github/**', 'renovate.json', '.claude/**']
+  workflow_dispatch:
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
 
 permissions:
-  contents: read
-  id-token: write
+  contents: write # push the version tag
+  id-token: write # npm trusted publishing + provenance
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
           registry-url: https://registry.npmjs.org
-      - name: Tag matches package.json version
+      - name: Next version
+        id: version
         run: |
-          version="v$(node -p "require('./package.json').version")"
-          if [ "$version" != "$GITHUB_REF_NAME" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match package.json $version" && exit 1
-          fi
+          prefix="$(TZ=Europe/London date +%Y).$(TZ=Europe/London date +%-m)"
+          name=$(node -p "require('./package.json').name")
+          # Highest N this month across git tags and npm (either may be missing a release).
+          last=$( { git tag --list "v$prefix.*" | sed 's/^v//'; npm view "$name" versions --json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{[].concat(JSON.parse(s)).forEach(v=>console.log(v))}catch{}})'; } \
+            | grep -E "^$prefix\.[0-9]+$" | sed "s/^$prefix\.//" | sort -n | tail -1)
+          next="$prefix.$(( ${last:--1} + 1 ))"
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+          echo "Publishing $next"
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      - run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
       # Trusted publishing needs npm 11.5.1 or newer.
       - run: npm install -g npm@latest && npm publish
+      - name: Tag
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
