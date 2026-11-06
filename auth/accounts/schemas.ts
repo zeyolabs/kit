@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { Schema } from '../utils/schema';
+import { Schema } from '../../utils/schema';
 
 // Inputs of the account-management remote functions, shared with the app's forms (a remote module
 // may only export remote functions).

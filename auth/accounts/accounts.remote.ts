@@ -1,10 +1,11 @@
 import { getRequestEvent } from '$app/server';
 import { z } from 'zod';
 
-import { Remote } from '../server/remote-functions';
-import { FormResult } from '../utils/form';
-import { requireAccount, requirePermission } from './account-handle';
-import { InviteSchema, PolicySchema } from './account-schemas';
+import { Remote } from '../../server/remote-functions';
+import { FormResult } from '../../utils/form';
+import { auth } from '../config';
+import { inviteEmail } from '../emails';
+import { authLocals } from '../sessions/handle';
 import {
 	can,
 	createInvite,
@@ -18,10 +19,9 @@ import {
 	savePolicy,
 	setMemberPolicy,
 } from './accounts';
-import { auth } from './config';
-import { inviteEmail } from './email';
-import { authLocals } from './handle';
+import { requireAccount, requirePermission } from './handle';
 import { ACCOUNT_PERMISSIONS } from './permissions';
+import { InviteSchema, PolicySchema } from './schemas';
 
 // Account management for the app's pages, acting in the request's account (`createAccountHandle`).
 // Each call checks the caller's permissions in `accounts.ts`; these only adapt them to the wire.

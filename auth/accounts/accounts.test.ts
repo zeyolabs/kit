@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { AuthDb } from './config';
+import type { AuthDb } from '../config';
 
-import { createTestDb } from './__fixtures__/db';
+import { createTestDb } from '../__fixtures__/db';
+import { findOrCreateUser } from '../users';
 import {
 	acceptInvite,
 	addMember,
@@ -19,7 +20,6 @@ import {
 	savePolicy,
 	setMemberPolicy,
 } from './accounts';
-import { findOrCreateUser } from './users';
 
 const catalogue = {
 	memberPermissions: ['projects.read'],

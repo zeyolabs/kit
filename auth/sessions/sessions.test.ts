@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { AuthDb } from './config';
+import type { AuthDb } from '../config';
 
-import { createTestDb } from './__fixtures__/db';
-import { SESSION_LIFETIME_MS, SESSION_RENEW_BELOW_MS } from './config';
+import { createTestDb } from '../__fixtures__/db';
+import { SESSION_LIFETIME_MS, SESSION_RENEW_BELOW_MS } from '../config';
+import { findOrCreateUser } from '../users';
 import {
 	createSession,
 	deleteSession,
@@ -12,7 +13,6 @@ import {
 	splitSessionToken,
 	validateSession,
 } from './sessions';
-import { findOrCreateUser } from './users';
 
 let db: AuthDb;
 let userId: number;

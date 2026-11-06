@@ -1,9 +1,9 @@
 import { and, eq, gt, isNull, lt, or } from 'drizzle-orm';
 
-import type { AuthDb } from './config';
+import type { AuthDb } from '../config';
 
-import { Crypto } from '../utils/crypto';
-import { authTokens } from './schema';
+import { Crypto } from '../../utils/crypto';
+import { authTokens } from '../schema';
 
 // Magic-link tokens. The emailed secret is 256 random bits; only its sha256 is stored, so a leaked
 // row can't be replayed. A token is consumed by a single atomic UPDATE, so two clicks (or a mail

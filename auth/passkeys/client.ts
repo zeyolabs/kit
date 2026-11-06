@@ -1,4 +1,4 @@
-// Browser side of the passkey endpoints in `routes.ts`. Uses the WebAuthn JSON helpers
+// Browser side of the passkey endpoints in `sveltekit/routes.ts`. Uses the WebAuthn JSON helpers
 // (`PublicKeyCredential.parse*OptionsFromJSON`, `credential.toJSON()`), available in every
 // current browser. Import only from client code (event handlers), never at module scope on the
 // server.

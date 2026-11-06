@@ -2,15 +2,15 @@ import type { RequestEvent } from '@sveltejs/kit';
 
 import { redirect } from '@sveltejs/kit';
 
-import { findInvite } from './accounts';
-import { auth, FRESH_SESSION_MS } from './config';
-import { authLocals } from './handle';
-import { listPasskeys } from './passkeys';
+import { findInvite } from '../accounts/accounts';
+import { auth, FRESH_SESSION_MS } from '../config';
+import { listPasskeys } from '../passkeys/passkeys';
+import { authLocals } from '../sessions/handle';
 import { loginErrorMessage, safeNext } from './routes';
 
 type LoadEvent = Pick<RequestEvent, 'locals' | 'url'>;
 
-/** The login page's server load: `export { loginLoad as load } from '@zeyolabs/kit/auth/loads'`.
+/** The login page's server load: `export { loginLoad as load } from '@zeyolabs/kit/auth/sveltekit/loads'`.
  *  A signed-in visitor goes straight on to `next`, unless they arrived with a link token. */
 export function loginLoad(event: LoadEvent) {
 	const { accessEmail, user } = authLocals(event as RequestEvent);

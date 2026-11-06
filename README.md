@@ -31,6 +31,11 @@ Publishing uses npm trusted publishing: the package's npmjs.com settings trust t
 
 ## Auth (`@zeyolabs/kit/auth/*`)
 
+`config`, `schema`, `users`, `emails` at the top; one folder per part: `sessions/` (cookie
+sessions, the auth handle), `magic-link/`, `passkeys/` (server verification, browser `client`),
+`accounts/` (accounts, permissions, the account handle, remote functions), `sveltekit/` (the
+`/auth/*` routes and page loads).
+
 Passwordless sign-in: an emailed magic link or a passkey. No passwords anywhere. Sessions are
 `<id>.<secret>` cookies (sha256 at rest, 30 days, sliding); magic links are single-use and expire
 in 15 minutes; passkeys are verified server-side (ES256/RS256, user verification required).
@@ -50,11 +55,11 @@ in 15 minutes; passkeys are verified server-side (ES256/RS256, user verification
 3. Hook, after the context handle: `createAuthHandle({ access })` (pass `access` to also require
    a matching Cloudflare Access JWT). Type `App.Locals` as `interface Locals extends AuthLocals`.
 4. Routes: `src/routes/auth/[...path]/+server.ts` is
-   `export { POST } from '@zeyolabs/kit/auth/routes';`, and the login page's `+page.server.ts` is
-   `export { loginLoad as load } from '@zeyolabs/kit/auth/loads';`.
+   `export { POST } from '@zeyolabs/kit/auth/sveltekit/routes';`, and the login page's `+page.server.ts` is
+   `export { loginLoad as load } from '@zeyolabs/kit/auth/sveltekit/loads';`.
 5. The login page (the app's own markup) posts `email` to `/auth/email`; with `?token=` it shows a
    button posting `token` to `/auth/verify` (so mail scanners can't use the link); its passkey
-   button calls `signInWithPasskey()` from `@zeyolabs/kit/auth/passkey-client`. A settings page
+   button calls `signInWithPasskey()` from `@zeyolabs/kit/auth/passkeys/client`. A settings page
    uses `passkeysLoad` and `addPasskey(name)`, and posts `id` to `/auth/passkey/delete`.
 
 ### Accounts and policies
@@ -74,7 +79,7 @@ Accounts own resources; users reach them through a membership. Resource tables c
 - **Invite only.** `isAllowed: (email) => hasAccountAccess(db, email)`; invites are emailed links
   to the app's `/invite` page (`inviteLoad`), accepted by posting to `/auth/invite/accept`.
   `onSignIn` can bootstrap the first owners.
-- **Management.** `@zeyolabs/kit/auth/accounts.remote` has the queries and commands a members page
+- **Management.** `@zeyolabs/kit/auth/accounts/accounts.remote` has the queries and commands a members page
   needs (members, invites, policies), each checking the caller's permissions.
 
 ## Email clients

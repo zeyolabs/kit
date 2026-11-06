@@ -3,17 +3,17 @@ import type { RequestEvent } from '@sveltejs/kit';
 import { isRedirect } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { AuthDb } from './config';
+import type { AuthDb } from '../config';
 
-import { FakeEmailClient } from '../cloudflare/email/testing';
-import { TestAuthenticator } from './__fixtures__/authenticator';
-import { createTestDb } from './__fixtures__/db';
-import { createAccount, createInvite, resolveMembership } from './accounts';
-import { configureAuth } from './config';
-import { createAuthHandle } from './handle';
+import { FakeEmailClient } from '../../cloudflare/email/testing';
+import { TestAuthenticator } from '../__fixtures__/authenticator';
+import { createTestDb } from '../__fixtures__/db';
+import { createAccount, createInvite, resolveMembership } from '../accounts/accounts';
+import { configureAuth } from '../config';
+import { createAuthHandle } from '../sessions/handle';
+import { createSession } from '../sessions/sessions';
+import { findOrCreateUser } from '../users';
 import { POST, safeNext } from './routes';
-import { createSession } from './sessions';
-import { findOrCreateUser } from './users';
 
 const ORIGIN = 'https://app.example.com';
 const CATALOGUE = { memberPermissions: [], permissions: [] };

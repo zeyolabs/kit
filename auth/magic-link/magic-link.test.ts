@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { AuthDb } from './config';
+import type { AuthDb } from '../config';
 
-import { createTestDb } from './__fixtures__/db';
+import { createTestDb } from '../__fixtures__/db';
+import { findOrCreateUser, isEmailAllowed } from '../users';
 import {
 	consumeMagicLinkToken,
 	issueMagicLinkToken,
 	MAGIC_LINK_TTL_MS,
 	MAX_LIVE_LINKS,
 } from './magic-link';
-import { findOrCreateUser, isEmailAllowed } from './users';
 
 let db: AuthDb;
 const NOW = 1_800_000_000_000;

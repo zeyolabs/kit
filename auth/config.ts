@@ -2,8 +2,8 @@ import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 
 import type { IEmailClient } from '../cloudflare/email/base';
 import type { EmailBrand } from '../utils/email';
-import type { PermissionCatalogue } from './permissions';
-import type { AuthUser } from './sessions';
+import type { PermissionCatalogue } from './accounts/permissions';
+import type { AuthUser } from './sessions/sessions';
 
 /** Any async drizzle SQLite client (D1 in prod). A consumer's larger, schema-bound `Db` is
  *  assignable. */
@@ -18,7 +18,7 @@ export type MagicLinkMessage = {
 };
 
 export type AuthConfig = {
-	/** The app's permission keys and what plain members get (see `permissions.ts`). */
+	/** The app's permission keys and what plain members get (see `accounts/permissions.ts`). */
 	accounts: PermissionCatalogue;
 	/** Shown by the browser's passkey prompt and in the magic-link email. */
 	appName: string;

@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 
 import type { AuthDb } from './config';
-import type { AuthUser } from './sessions';
+import type { AuthUser } from './sessions/sessions';
 
 import { users } from './schema';
 

@@ -3,15 +3,15 @@ import type { Handle } from '@sveltejs/kit/hooks';
 
 import { redirect } from '@sveltejs/kit';
 
-import type { AccessConfig } from '../cloudflare/access';
-import type { AccountLocals } from './account-handle';
+import type { AccessConfig } from '../../cloudflare/access';
+import type { AccountLocals } from '../accounts/handle';
 import type { AuthSession, AuthUser } from './sessions';
 
-import { ACCESS_JWT_HEADER, verifyAccessJwt } from '../cloudflare/access';
-import { Error401 } from '../utils/errors';
-import { auth, sessionCookieAttributes } from './config';
+import { ACCESS_JWT_HEADER, verifyAccessJwt } from '../../cloudflare/access';
+import { Error401 } from '../../utils/errors';
+import { auth, sessionCookieAttributes } from '../config';
+import { emailsMatch } from '../users';
 import { deleteSession, needsRenewal, renewSession, validateSession } from './sessions';
-import { emailsMatch } from './users';
 
 /** What the handle puts on `event.locals`. Apps extend it: `interface Locals extends AuthLocals`. */
 export type AuthLocals = AccountLocals & {

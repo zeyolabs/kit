@@ -2,14 +2,14 @@ import type { RequestEvent } from '@sveltejs/kit';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { AuthDb } from './config';
+import type { AuthDb } from '../config';
 
-import { FakeEmailClient } from '../cloudflare/email/testing';
-import { createTestDb } from './__fixtures__/db';
-import { createAccountHandle, requirePermission, slugFromRoute } from './account-handle';
+import { FakeEmailClient } from '../../cloudflare/email/testing';
+import { createTestDb } from '../__fixtures__/db';
+import { configureAuth } from '../config';
+import { findOrCreateUser } from '../users';
 import { addMember, createAccount } from './accounts';
-import { configureAuth } from './config';
-import { findOrCreateUser } from './users';
+import { createAccountHandle, requirePermission, slugFromRoute } from './handle';
 
 let db: AuthDb;
 

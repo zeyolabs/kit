@@ -1,10 +1,10 @@
 import { and, eq, lt } from 'drizzle-orm';
 
-import type { AuthDb } from './config';
+import type { AuthDb } from '../config';
 
-import { Crypto } from '../utils/crypto';
-import { SESSION_LIFETIME_MS, SESSION_RENEW_BELOW_MS } from './config';
-import { sessions, users } from './schema';
+import { Crypto } from '../../utils/crypto';
+import { SESSION_LIFETIME_MS, SESSION_RENEW_BELOW_MS } from '../config';
+import { sessions, users } from '../schema';
 
 // Framework-agnostic session store: every function takes the db, so a plain Worker (no SvelteKit,
 // no `configureAuth`) can use it too.

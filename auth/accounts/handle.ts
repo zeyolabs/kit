@@ -5,10 +5,10 @@ import { error } from '@sveltejs/kit';
 
 import type { AccountSummary, Membership } from './accounts';
 
-import { Error403, Error404 } from '../utils/errors';
+import { Error403, Error404 } from '../../utils/errors';
+import { auth } from '../config';
+import { authLocals } from '../sessions/handle';
 import { can, findAccountBySlug, resolveMembership } from './accounts';
-import { auth } from './config';
-import { authLocals } from './handle';
 
 // Which account a request acts in, and the signed-in user's membership of it. Runs after
 // `createAuthHandle`. The account comes from the request (a route param, a fixed slug, ...) and

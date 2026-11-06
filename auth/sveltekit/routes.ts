@@ -4,16 +4,19 @@ import { json, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import type { AuthUser } from './sessions';
+import type { AuthUser } from '../sessions/sessions';
 
-import { logger } from '../server/logger';
-import { ServiceError } from '../utils/errors';
-import { Schema } from '../utils/schema';
-import { acceptInvite } from './accounts';
-import { auth, FRESH_SESSION_MS, sessionCookieAttributes } from './config';
-import { magicLinkEmail } from './email';
-import { authLocals } from './handle';
-import { consumeMagicLinkToken, issueMagicLinkToken, MAGIC_LINK_TTL_MS } from './magic-link';
+import { logger } from '../../server/logger';
+import { ServiceError } from '../../utils/errors';
+import { Schema } from '../../utils/schema';
+import { acceptInvite } from '../accounts/accounts';
+import { auth, FRESH_SESSION_MS, sessionCookieAttributes } from '../config';
+import { magicLinkEmail } from '../emails';
+import {
+	consumeMagicLinkToken,
+	issueMagicLinkToken,
+	MAGIC_LINK_TTL_MS,
+} from '../magic-link/magic-link';
 import {
 	authenticationOptions,
 	AuthenticationResponse,
@@ -29,13 +32,14 @@ import {
 	savePasskey,
 	verifyAuthentication,
 	verifyRegistration,
-} from './passkeys';
-import { users } from './schema';
-import { createSession, deleteSession } from './sessions';
-import { emailsMatch, findOrCreateUser } from './users';
+} from '../passkeys/passkeys';
+import { users } from '../schema';
+import { authLocals } from '../sessions/handle';
+import { createSession, deleteSession } from '../sessions/sessions';
+import { emailsMatch, findOrCreateUser } from '../users';
 
 // The auth endpoints, mounted by the app with one file:
-//   src/routes/auth/[...path]/+server.ts:  export { POST } from '@zeyolabs/kit/auth/routes';
+//   src/routes/auth/[...path]/+server.ts:  export { POST } from '@zeyolabs/kit/auth/sveltekit/routes';
 //
 //   POST /auth/email                  form {email, next}  -> emails a link, 303 login?sent=1
 //   POST /auth/verify                 form {token, next}  -> uses the link, signs in, 303 next

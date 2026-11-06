@@ -1,9 +1,10 @@
 import { and, asc, eq, gt, isNull, ne, or, sql } from 'drizzle-orm';
 
-import type { AuthDb } from './config';
+import type { AuthDb } from '../config';
 
-import { Crypto } from '../utils/crypto';
-import { Error400, Error403, Error404, Error409 } from '../utils/errors';
+import { Crypto } from '../../utils/crypto';
+import { Error400, Error403, Error404, Error409 } from '../../utils/errors';
+import { accountInvites, accountMembers, accountPolicies, accounts, users } from '../schema';
 import {
 	builtInPolicies,
 	grants,
@@ -13,7 +14,6 @@ import {
 	type PermissionCatalogue,
 	type Policy,
 } from './permissions';
-import { accountInvites, accountMembers, accountPolicies, accounts, users } from './schema';
 
 // Accounts own resources; users reach them through a membership whose policy says what they may
 // do. Framework-agnostic: every function takes the db (and the app's permission catalogue), so a

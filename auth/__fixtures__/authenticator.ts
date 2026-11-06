@@ -1,6 +1,10 @@
 import { encodeBase64urlNoPadding } from '@oslojs/encoding';
 
-import type { AuthenticationResponse, RegistrationResponse, RelyingParty } from '../passkeys';
+import type {
+	AuthenticationResponse,
+	RegistrationResponse,
+	RelyingParty,
+} from '../passkeys/passkeys';
 
 // A software ES256 authenticator: just enough CBOR, authenticator data and DER to drive the
 // passkey ceremonies in tests with real WebCrypto signatures.
