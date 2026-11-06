@@ -9,13 +9,13 @@ import { authTokens } from '../../schema';
 // row can't be replayed. A token is consumed by a single atomic UPDATE, so two clicks (or a mail
 // scanner racing the user) can't both sign in.
 
-export const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
+const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
 
 /** Unused, unexpired links allowed per email at once: stops someone flooding an inbox. */
-export const MAX_LIVE_LINKS = 3;
+const MAX_LIVE_LINKS = 3;
 
 /** A fresh token for `email`, or `null` when it already has `MAX_LIVE_LINKS` live ones. */
-export async function issueMagicLinkToken(
+async function issueMagicLinkToken(
 	db: AuthDb,
 	email: string,
 	now = Date.now()
@@ -43,7 +43,7 @@ export async function issueMagicLinkToken(
 }
 
 /** Uses a token up and returns its email, or `null` if it is unknown, used or expired. */
-export async function consumeMagicLinkToken(
+async function consumeMagicLinkToken(
 	db: AuthDb,
 	token: string,
 	now = Date.now()
@@ -62,3 +62,10 @@ export async function consumeMagicLinkToken(
 		.returning({ email: authTokens.email });
 	return row?.email ?? null;
 }
+
+export const MagicLink = {
+	consume: consumeMagicLinkToken,
+	issue: issueMagicLinkToken,
+	MAX_LIVE: MAX_LIVE_LINKS,
+	TTL_MS: MAGIC_LINK_TTL_MS,
+};

@@ -6,9 +6,9 @@ import { error } from '@sveltejs/kit';
 import type { AccountSummary, Membership } from './accounts';
 
 import { Error403, Error404 } from '../../utils/errors';
-import { auth } from '../config';
-import { authLocals } from '../sessions/handle';
-import { can, findAccountBySlug, resolveMembership } from './accounts';
+import { Auth } from '../config';
+import { AuthHandle } from '../sessions/handle';
+import { Accounts } from './accounts';
 
 // Which account a request acts in, and the signed-in user's membership of it. Runs after
 // `createAuthHandle`. The account comes from the request (a route param, a fixed slug, ...) and
@@ -21,14 +21,16 @@ export type AccountLocals = {
 	membership: Membership | null;
 };
 
-export const accountLocals = (event: RequestEvent) => event.locals as unknown as AccountLocals;
+function accountLocals(event: RequestEvent): AccountLocals {
+	return event.locals as unknown as AccountLocals;
+}
 
 /**
  * The account slug from the route param `param` (e.g. `/[account]/...`). Remote-function calls
  * have no route params, so for those it reads the same path segment of the calling page (the
  * `Referer`), which SvelteKit always sends for same-origin fetches.
  */
-export function slugFromRoute(param = 'account', segment = 0) {
+function slugFromRoute(param = 'account', segment = 0) {
 	return (event: RequestEvent): null | string => {
 		const fromParam = event.params[param as keyof typeof event.params];
 		if (typeof fromParam === 'string') return fromParam;
@@ -45,7 +47,7 @@ export function slugFromRoute(param = 'account', segment = 0) {
  * Sets `locals.account` and `locals.membership`. A slug for an account that doesn't exist, or that
  * the user doesn't belong to, is a 404 (the same answer, so slugs can't be probed).
  */
-export function createAccountHandle(options: {
+function createAccountHandle(options: {
 	/** The account slug for a request, or null when it isn't in an account. */
 	slug: (event: RequestEvent) => null | string;
 }): Handle {
@@ -53,12 +55,18 @@ export function createAccountHandle(options: {
 		const locals = accountLocals(event);
 		locals.account = null;
 		locals.membership = null;
-		const { user } = authLocals(event);
+		const { user } = AuthHandle.locals(event);
 		const slug = user ? options.slug(event) : null;
 		if (slug && user) {
-			const account = await findAccountBySlug(auth().db(), slug);
+			const account = await Accounts.findBySlug(Auth.config().db(), slug);
 			const membership =
-				account && (await resolveMembership(auth().db(), auth().accounts, account.id, user.id));
+				account &&
+				(await Accounts.resolveMembership(
+					Auth.config().db(),
+					Auth.config().accounts,
+					account.id,
+					user.id
+				));
 			if (!account || !membership) error(404, 'Not found');
 			locals.account = account;
 			locals.membership = membership;
@@ -68,7 +76,7 @@ export function createAccountHandle(options: {
 }
 
 /** The request's account and membership, or a 404 `ServiceError`. */
-export function requireAccount(event: RequestEvent): {
+function requireAccount(event: RequestEvent): {
 	account: AccountSummary;
 	membership: Membership;
 } {
@@ -78,8 +86,17 @@ export function requireAccount(event: RequestEvent): {
 }
 
 /** The request's membership if it grants `permission`, else a 403 `ServiceError`. */
-export function requirePermission(event: RequestEvent, permission: string): Membership {
+function requirePermission(event: RequestEvent, permission: string): Membership {
 	const { membership } = requireAccount(event);
-	if (!can(membership, permission)) throw Error403('You do not have permission to do that');
+	if (!Accounts.can(membership, permission))
+		throw Error403('You do not have permission to do that');
 	return membership;
 }
+
+export const AccountHandle = {
+	create: createAccountHandle,
+	locals: accountLocals,
+	require: requireAccount,
+	requirePermission,
+	slugFromRoute,
+};

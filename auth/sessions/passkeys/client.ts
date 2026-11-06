@@ -21,14 +21,14 @@ type CredentialsContainer = {
 };
 
 /** Whether this browser can use passkeys at all (and has the JSON helpers we rely on). */
-export function passkeysSupported(): boolean {
+function passkeysSupported(): boolean {
 	const pkc = (globalThis as { PublicKeyCredential?: PublicKeyCredentialStatic })
 		.PublicKeyCredential;
 	return typeof pkc?.parseRequestOptionsFromJSON === 'function';
 }
 
 /** Whether the browser can offer passkeys from the email field's autofill. */
-export async function conditionalPasskeysSupported(): Promise<boolean> {
+async function conditionalPasskeysSupported(): Promise<boolean> {
 	if (!passkeysSupported()) return false;
 	const pkc = (globalThis as unknown as { PublicKeyCredential: PublicKeyCredentialStatic })
 		.PublicKeyCredential;
@@ -68,7 +68,7 @@ function api() {
 }
 
 /** True when the user dismissed the browser prompt (not worth showing an error for). */
-export function isPasskeyCancel(err: unknown): boolean {
+function isPasskeyCancel(err: unknown): boolean {
 	return err instanceof Error && (err.name === 'NotAllowedError' || err.name === 'AbortError');
 }
 
@@ -77,7 +77,7 @@ export function isPasskeyCancel(err: unknown): boolean {
  * quietly for the user to pick a passkey from the email field's autofill (the field needs
  * `autocomplete="username webauthn"`); abort it with `signal` before starting a modal one.
  */
-export async function signInWithPasskey(
+async function signInWithPasskey(
 	options: { conditional?: boolean; next?: string; signal?: AbortSignal } = {}
 ): Promise<string> {
 	const { credentials, pkc } = api();
@@ -96,7 +96,7 @@ export async function signInWithPasskey(
 }
 
 /** Creates a passkey for the signed-in user and saves it under `name`. */
-export async function addPasskey(name: string): Promise<void> {
+async function addPasskey(name: string): Promise<void> {
 	const { credentials, pkc } = api();
 	const options = await post('/auth/passkey/register-options');
 	const credential = await credentials.create({
@@ -105,3 +105,11 @@ export async function addPasskey(name: string): Promise<void> {
 	if (!credential) throw new PasskeyClientError('No passkey was created');
 	await post('/auth/passkey/register', { credential: credential.toJSON(), name });
 }
+
+export const PasskeyClient = {
+	add: addPasskey,
+	conditionalSupported: conditionalPasskeysSupported,
+	isCancel: isPasskeyCancel,
+	signIn: signInWithPasskey,
+	supported: passkeysSupported,
+};

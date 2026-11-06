@@ -8,12 +8,14 @@ import type { AuthDb } from '../config';
 import { FakeEmailClient } from '../../cloudflare/email/testing';
 import { TestAuthenticator } from '../__fixtures__/authenticator';
 import { createTestDb } from '../__fixtures__/db';
-import { createAccount, createInvite, resolveMembership } from '../accounts/accounts';
-import { configureAuth } from '../config';
-import { createAuthHandle } from '../sessions/handle';
-import { createSession } from '../sessions/sessions';
-import { findOrCreateUser } from '../users';
-import { POST, safeNext } from './routes';
+import { Accounts } from '../accounts/accounts';
+import { Invites } from '../accounts/invites';
+import { Auth } from '../config';
+import { AuthHandle } from '../sessions/handle';
+import { Sessions } from '../sessions/sessions';
+import { Users } from '../users';
+import { Login } from './login';
+import { POST } from './routes';
 
 const ORIGIN = 'https://app.example.com';
 const CATALOGUE = { memberPermissions: [], permissions: [] };
@@ -35,7 +37,7 @@ beforeEach(async () => {
 	db = await createTestDb();
 	mail = new FakeEmailClient();
 	jar = new Map();
-	configureAuth({
+	Auth.configure({
 		accounts: CATALOGUE,
 		appName: 'Example',
 		db: () => db,
@@ -75,18 +77,18 @@ function event(
  *  the response. */
 async function call(e: RequestEvent): Promise<Response | string> {
 	try {
-		return await createAuthHandle()({ event: e, resolve: () => POST(e as never) });
+		return await AuthHandle.create()({ event: e, resolve: () => POST(e as never) });
 	} catch (err) {
 		if (isRedirect(err)) return err.location;
 		throw err;
 	}
 }
 
-describe('safeNext', () => {
+describe('Login.safeNext', () => {
 	it('keeps same-site paths only', () => {
-		expect(safeNext('/orders?x=1')).toBe('/orders?x=1');
+		expect(Login.safeNext('/orders?x=1')).toBe('/orders?x=1');
 		for (const bad of ['//evil.com', '/\\evil.com', 'https://evil.com', '', null]) {
-			expect(safeNext(bad)).toBe('/');
+			expect(Login.safeNext(bad)).toBe('/');
 		}
 	});
 });
@@ -127,7 +129,7 @@ describe('magic link flow', () => {
 
 describe('the handle', () => {
 	it('redirects pages to login with next, and 401s API calls', async () => {
-		const handle = createAuthHandle();
+		const handle = AuthHandle.create();
 		const resolve = vi.fn();
 		await expect(handle({ event: event('/orders?page=2'), resolve })).rejects.toMatchObject({
 			location: '/login?next=%2Forders%3Fpage%3D2',
@@ -141,13 +143,13 @@ describe('the handle', () => {
 	});
 
 	it('signs out a user who is no longer allowed', async () => {
-		const user = await findOrCreateUser(db, 'ada@example.com');
-		jar.set('session', (await createSession(db, user.id)).token);
+		const user = await Users.findOrCreate(db, 'ada@example.com');
+		jar.set('session', (await Sessions.create(db, user.id)).token);
 		const resolve = vi.fn(async () => new Response('ok'));
-		await createAuthHandle()({ event: event('/'), resolve });
+		await AuthHandle.create()({ event: event('/'), resolve });
 		expect(resolve).toHaveBeenCalledOnce();
 
-		configureAuth({
+		Auth.configure({
 			accounts: CATALOGUE,
 			appName: 'Example',
 			db: () => db,
@@ -155,7 +157,7 @@ describe('the handle', () => {
 			emailBrand: BRAND,
 			isAllowed: () => false,
 		});
-		await expect(createAuthHandle()({ event: event('/'), resolve })).rejects.toMatchObject({
+		await expect(AuthHandle.create()({ event: event('/'), resolve })).rejects.toMatchObject({
 			status: 303,
 		});
 		expect(jar.has('session')).toBe(false);
@@ -164,8 +166,8 @@ describe('the handle', () => {
 
 describe('passkey flow', () => {
 	async function signedIn(ageMs = 0) {
-		const user = await findOrCreateUser(db, 'ada@example.com');
-		jar.set('session', (await createSession(db, user.id, Date.now() - ageMs)).token);
+		const user = await Users.findOrCreate(db, 'ada@example.com');
+		jar.set('session', (await Sessions.create(db, user.id, Date.now() - ageMs)).token);
 	}
 
 	async function json(e: RequestEvent) {
@@ -209,10 +211,10 @@ describe('passkey flow', () => {
 
 describe('invite flow', () => {
 	it('sends a signed-out invitee to log in, then joins them to the account', async () => {
-		const owner = await findOrCreateUser(db, 'ada@example.com');
-		const account = await createAccount(db, { name: 'Acme', slug: 'acme' }, owner.id);
-		const ownerMembership = await resolveMembership(db, CATALOGUE, account.id, owner.id);
-		const token = await createInvite(db, CATALOGUE, ownerMembership!, {
+		const owner = await Users.findOrCreate(db, 'ada@example.com');
+		const account = await Accounts.create(db, { name: 'Acme', slug: 'acme' }, owner.id);
+		const ownerMembership = await Accounts.resolveMembership(db, CATALOGUE, account.id, owner.id);
+		const token = await Invites.create(db, CATALOGUE, ownerMembership!, {
 			email: 'carol@example.com',
 			policy: 'member',
 		});
@@ -220,12 +222,12 @@ describe('invite flow', () => {
 		const signedOut = await call(event('/auth/invite/accept', { form: { token } }));
 		expect(signedOut).toBe(`/login?next=${encodeURIComponent(`/invite?token=${token}`)}`);
 
-		const carol = await findOrCreateUser(db, 'carol@example.com');
-		jar.set('session', (await createSession(db, carol.id)).token);
+		const carol = await Users.findOrCreate(db, 'carol@example.com');
+		jar.set('session', (await Sessions.create(db, carol.id)).token);
 		expect(await call(event('/auth/invite/accept', { form: { token } }))).toBe('/acme');
-		expect((await resolveMembership(db, CATALOGUE, account.id, carol.id))?.policy.key).toBe(
-			'member'
-		);
+		expect(
+			(await Accounts.resolveMembership(db, CATALOGUE, account.id, carol.id))?.policy.key
+		).toBe('member');
 
 		// Used up: a second accept goes back to the invite page with the error.
 		expect(await call(event('/auth/invite/accept', { form: { token } }))).toMatch(/error=404$/);

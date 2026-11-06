@@ -2,25 +2,25 @@ import type { RequestEvent } from '@sveltejs/kit';
 
 import { redirect } from '@sveltejs/kit';
 
-import { findInvite } from '../accounts/accounts';
-import { auth, FRESH_SESSION_MS } from '../config';
-import { authLocals } from '../sessions/handle';
-import { listPasskeys } from '../sessions/passkeys/passkeys';
-import { loginErrorMessage, safeNext } from './routes';
+import { Invites } from '../accounts/invites';
+import { Auth } from '../config';
+import { AuthHandle } from '../sessions/handle';
+import { Passkeys } from '../sessions/passkeys/passkeys';
+import { Login } from './login';
 
 type LoadEvent = Pick<RequestEvent, 'locals' | 'url'>;
 
 /** The login page's server load: `export { loginLoad as load } from '@zeyolabs/kit/auth/sveltekit/loads'`.
  *  A signed-in visitor goes straight on to `next`, unless they arrived with a link token. */
-export function loginLoad(event: LoadEvent) {
-	const { accessEmail, user } = authLocals(event as RequestEvent);
+function loginLoad(event: LoadEvent) {
+	const { accessEmail, user } = AuthHandle.locals(event as RequestEvent);
 	const params = event.url.searchParams;
-	const next = safeNext(params.get('next') ?? '/');
+	const next = Login.safeNext(params.get('next') ?? '/');
 	const token = params.get('token');
 	if (user && !token) redirect(303, next);
 	return {
 		accessEmail,
-		error: loginErrorMessage(params.get('error')),
+		error: Login.errorMessage(params.get('error')),
 		next,
 		sent: params.has('sent'),
 		token,
@@ -29,21 +29,21 @@ export function loginLoad(event: LoadEvent) {
 
 /** For a settings page that manages passkeys. `fresh` says whether adding one is allowed now
  *  without signing in again. */
-export async function passkeysLoad(event: LoadEvent) {
-	const { session, user } = authLocals(event as RequestEvent);
-	if (!session || !user) redirect(303, auth().loginPath);
+async function passkeysLoad(event: LoadEvent) {
+	const { session, user } = AuthHandle.locals(event as RequestEvent);
+	if (!session || !user) redirect(303, Auth.config().loginPath);
 	return {
-		fresh: Date.now() - session.createdAt <= FRESH_SESSION_MS,
-		passkeys: await listPasskeys(auth().db(), user.id),
+		fresh: Date.now() - session.createdAt <= Passkeys.FRESH_SESSION_MS,
+		passkeys: await Passkeys.list(Auth.config().db(), user.id),
 	};
 }
 
 /** The invite page's load (`/invite?token=`): who invited whom to what. Signed-out visitors are
  *  already sent to the login page by the auth handle and come back here. */
-export async function inviteLoad(event: LoadEvent) {
-	const { user } = authLocals(event as RequestEvent);
+async function inviteLoad(event: LoadEvent) {
+	const { user } = AuthHandle.locals(event as RequestEvent);
 	const token = event.url.searchParams.get('token') ?? '';
-	const invite = await findInvite(auth().db(), token);
+	const invite = await Invites.find(Auth.config().db(), token);
 	return {
 		error: event.url.searchParams.get('error'),
 		invite: invite && { accountName: invite.account.name, email: invite.email },
@@ -51,3 +51,9 @@ export async function inviteLoad(event: LoadEvent) {
 		token,
 	};
 }
+
+export const AuthLoads = {
+	invite: inviteLoad,
+	login: loginLoad,
+	passkeys: passkeysLoad,
+};

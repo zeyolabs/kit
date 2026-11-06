@@ -5,19 +5,9 @@ import type { AuthUser } from '../sessions';
 
 import { TestAuthenticator } from '../../__fixtures__/authenticator';
 import { createTestDb } from '../../__fixtures__/db';
-import { findOrCreateUser } from '../../users';
-import {
-	deletePasskey,
-	findPasskey,
-	listPasskeys,
-	newChallenge,
-	PasskeyError,
-	registrationOptions,
-	type RelyingParty,
-	savePasskey,
-	verifyAuthentication,
-	verifyRegistration,
-} from './passkeys';
+import { Users } from '../../users';
+import { PasskeyError, type RelyingParty } from './passkeys';
+import { Passkeys } from './passkeys';
 
 const rp: RelyingParty = {
 	id: 'app.example.com',
@@ -31,15 +21,19 @@ let authenticator: TestAuthenticator;
 
 beforeEach(async () => {
 	db = await createTestDb();
-	user = await findOrCreateUser(db, 'ada@example.com');
+	user = await Users.findOrCreate(db, 'ada@example.com');
 	authenticator = await TestAuthenticator.create();
 });
 
 async function registered() {
-	const challenge = newChallenge();
-	const credential = verifyRegistration(await authenticator.register(challenge, rp), challenge, rp);
-	await savePasskey(db, user.id, 'Laptop', credential);
-	return (await findPasskey(db, credential.id))!;
+	const challenge = Passkeys.newChallenge();
+	const credential = Passkeys.verifyRegistration(
+		await authenticator.register(challenge, rp),
+		challenge,
+		rp
+	);
+	await Passkeys.save(db, user.id, 'Laptop', credential);
+	return (await Passkeys.find(db, credential.id))!;
 }
 
 describe('registration', () => {
@@ -51,30 +45,32 @@ describe('registration', () => {
 			name: 'Laptop',
 			userId: user.id,
 		});
-		expect(await listPasskeys(db, user.id)).toHaveLength(1);
+		expect(await Passkeys.list(db, user.id)).toHaveLength(1);
 	});
 
 	it('rejects a different challenge, origin or RP', async () => {
-		const challenge = newChallenge();
+		const challenge = Passkeys.newChallenge();
 		const response = await authenticator.register(challenge, rp);
-		expect(() => verifyRegistration(response, newChallenge(), rp)).toThrow(PasskeyError);
-		expect(() =>
-			verifyRegistration(response, challenge, { ...rp, origin: 'https://evil.example' })
-		).toThrow('Origin mismatch');
-		expect(() => verifyRegistration(response, challenge, { ...rp, id: 'example.org' })).toThrow(
+		expect(() => Passkeys.verifyRegistration(response, Passkeys.newChallenge(), rp)).toThrow(
 			PasskeyError
 		);
+		expect(() =>
+			Passkeys.verifyRegistration(response, challenge, { ...rp, origin: 'https://evil.example' })
+		).toThrow('Origin mismatch');
+		expect(() =>
+			Passkeys.verifyRegistration(response, challenge, { ...rp, id: 'example.org' })
+		).toThrow(PasskeyError);
 	});
 
 	it('requires user verification', async () => {
 		authenticator.flags = 0x01;
-		const challenge = newChallenge();
+		const challenge = Passkeys.newChallenge();
 		const response = await authenticator.register(challenge, rp);
-		expect(() => verifyRegistration(response, challenge, rp)).toThrow('User not verified');
+		expect(() => Passkeys.verifyRegistration(response, challenge, rp)).toThrow('User not verified');
 	});
 
 	it('lists existing passkeys as excluded', () => {
-		const options = registrationOptions(rp, user, newChallenge(), ['abc']);
+		const options = Passkeys.registrationOptions(rp, user, Passkeys.newChallenge(), ['abc']);
 		expect(options.excludeCredentials).toEqual([{ id: 'abc', type: 'public-key' }]);
 		expect(options.authenticatorSelection.userVerification).toBe('required');
 	});
@@ -83,50 +79,56 @@ describe('registration', () => {
 describe('authentication', () => {
 	it('verifies a real signature', async () => {
 		const stored = await registered();
-		const challenge = newChallenge();
+		const challenge = Passkeys.newChallenge();
 		const response = await authenticator.signIn(challenge, rp);
-		expect(verifyAuthentication(response, challenge, rp, stored)).toBe(0);
+		expect(Passkeys.verifyAuthentication(response, challenge, rp, stored)).toBe(0);
 	});
 
 	it('rejects a signature from another key', async () => {
 		const stored = await registered();
 		const other = await TestAuthenticator.create();
-		const challenge = newChallenge();
+		const challenge = Passkeys.newChallenge();
 		const response = await other.signIn(challenge, rp);
-		expect(() => verifyAuthentication(response, challenge, rp, stored)).toThrow('Bad signature');
+		expect(() => Passkeys.verifyAuthentication(response, challenge, rp, stored)).toThrow(
+			'Bad signature'
+		);
 	});
 
 	it('rejects a replayed challenge, wrong origin or wrong RP', async () => {
 		const stored = await registered();
-		const challenge = newChallenge();
+		const challenge = Passkeys.newChallenge();
 		const response = await authenticator.signIn(challenge, rp);
-		expect(() => verifyAuthentication(response, newChallenge(), rp, stored)).toThrow(
-			'Challenge mismatch'
-		);
+		expect(() =>
+			Passkeys.verifyAuthentication(response, Passkeys.newChallenge(), rp, stored)
+		).toThrow('Challenge mismatch');
 		const phished = await authenticator.signIn(challenge, rp, { origin: 'https://evil.example' });
-		expect(() => verifyAuthentication(phished, challenge, rp, stored)).toThrow('Origin mismatch');
+		expect(() => Passkeys.verifyAuthentication(phished, challenge, rp, stored)).toThrow(
+			'Origin mismatch'
+		);
 		const otherRp = await authenticator.signIn(challenge, rp, { rpId: 'evil.example' });
-		expect(() => verifyAuthentication(otherRp, challenge, rp, stored)).toThrow('Wrong RP id');
+		expect(() => Passkeys.verifyAuthentication(otherRp, challenge, rp, stored)).toThrow(
+			'Wrong RP id'
+		);
 	});
 
 	it('rejects a counter that does not move forward', async () => {
 		const stored = await registered();
 		authenticator.counter = 5;
-		const challenge = newChallenge();
+		const challenge = Passkeys.newChallenge();
 		const response = await authenticator.signIn(challenge, rp);
-		expect(verifyAuthentication(response, challenge, rp, stored)).toBe(5);
+		expect(Passkeys.verifyAuthentication(response, challenge, rp, stored)).toBe(5);
 		expect(() =>
-			verifyAuthentication(response, challenge, rp, { ...stored, signCount: 5 })
+			Passkeys.verifyAuthentication(response, challenge, rp, { ...stored, signCount: 5 })
 		).toThrow('possible cloned key');
 	});
 });
 
-describe('deletePasskey', () => {
+describe('Passkeys.delete', () => {
 	it("only deletes the user's own passkey", async () => {
 		const stored = await registered();
-		const other = await findOrCreateUser(db, 'eve@example.com');
-		expect(await deletePasskey(db, other.id, stored.id)).toBe(false);
-		expect(await deletePasskey(db, user.id, stored.id)).toBe(true);
-		expect(await findPasskey(db, stored.id)).toBeNull();
+		const other = await Users.findOrCreate(db, 'eve@example.com');
+		expect(await Passkeys.delete(db, other.id, stored.id)).toBe(false);
+		expect(await Passkeys.delete(db, user.id, stored.id)).toBe(true);
+		expect(await Passkeys.find(db, stored.id)).toBeNull();
 	});
 });

@@ -11,7 +11,7 @@
 // An account can add its own policies (`account_policies`), made of the app's permission keys.
 
 /** The permissions this module itself checks, for account management. */
-export const ACCOUNT_PERMISSIONS = [
+const ACCOUNT_PERMISSIONS = [
 	'account.edit',
 	'members.read',
 	'members.invite',
@@ -37,11 +37,11 @@ export type PermissionCatalogue = {
 	permissions: readonly string[];
 };
 
-export function isBuiltInPolicy(key: string): key is BuiltInPolicyKey {
+function isBuiltInPolicy(key: string): key is BuiltInPolicyKey {
 	return (BUILT_IN_POLICY_KEYS as readonly string[]).includes(key);
 }
 
-export function builtInPolicies(catalogue: PermissionCatalogue): Record<BuiltInPolicyKey, Policy> {
+function builtInPolicies(catalogue: PermissionCatalogue): Record<BuiltInPolicyKey, Policy> {
 	const everything = [...ACCOUNT_PERMISSIONS, ...catalogue.permissions];
 	return {
 		admin: {
@@ -61,14 +61,14 @@ export function builtInPolicies(catalogue: PermissionCatalogue): Record<BuiltInP
 }
 
 /** Whether `granted` (a policy's keys, wildcards allowed) includes `permission`. */
-export function grants(granted: readonly string[], permission: string): boolean {
+function grants(granted: readonly string[], permission: string): boolean {
 	const resource = permission.split('.')[0];
 	return granted.some((g) => g === '*' || g === permission || g === `${resource}.*`);
 }
 
 /** Every key a custom policy may contain: exact catalogue keys, or `<resource>.*` for a resource
  *  in it. Never `*`, which only the owner policy holds. */
-export function isGrantableKey(catalogue: PermissionCatalogue, key: string): boolean {
+function isGrantableKey(catalogue: PermissionCatalogue, key: string): boolean {
 	const all = [...ACCOUNT_PERMISSIONS, ...catalogue.permissions];
 	if (all.includes(key)) return true;
 	const match = /^([a-z][a-z0-9-]*)\.\*$/.exec(key);
@@ -76,6 +76,15 @@ export function isGrantableKey(catalogue: PermissionCatalogue, key: string): boo
 }
 
 /** Keys and names for a custom policy: `[a-z0-9-]`, 1-40 chars, not a built-in key. */
-export function isValidPolicyKey(key: string): boolean {
+function isValidPolicyKey(key: string): boolean {
 	return /^[a-z0-9][a-z0-9-]{0,39}$/.test(key) && !isBuiltInPolicy(key);
 }
+
+export const Permissions = {
+	ACCOUNT: ACCOUNT_PERMISSIONS,
+	builtIns: builtInPolicies,
+	grants,
+	isBuiltIn: isBuiltInPolicy,
+	isGrantable: isGrantableKey,
+	isValidKey: isValidPolicyKey,
+};

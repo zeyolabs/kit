@@ -3,29 +3,41 @@ import { and, eq, lt } from 'drizzle-orm';
 import type { AuthDb } from '../config';
 
 import { Crypto } from '../../utils/crypto';
-import { SESSION_LIFETIME_MS, SESSION_RENEW_BELOW_MS } from '../config';
 import { sessions, users } from '../schema';
 
 // Framework-agnostic session store: every function takes the db, so a plain Worker (no SvelteKit,
 // no `configureAuth`) can use it too.
 
+/** Session lifetime and sliding renewal: a session used with less than `RENEW_BELOW_MS` left is
+ *  pushed out to a full `SESSION_LIFETIME_MS` again. */
+const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
+const SESSION_RENEW_BELOW_MS = 15 * 24 * 60 * 60 * 1000;
+
+/** Session cookie: host-only (no `domain`), `secure` always (browsers treat localhost as secure). */
+const sessionCookieAttributes = {
+	httpOnly: true,
+	path: '/',
+	sameSite: 'lax',
+	secure: true,
+} as const;
+
 export type AuthSession = { createdAt: number; expiresAt: number; id: string };
 export type AuthUser = { avatarUrl: null | string; email: string; id: number; name: string };
 
 /** Split a `<id>.<secret>` session cookie value. `null` unless it is exactly two parts. */
-export function splitSessionToken(token: string): null | { id: string; secret: string } {
+function splitSessionToken(token: string): null | { id: string; secret: string } {
 	const parts = token.split('.');
 	if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
 	return { id: parts[0], secret: parts[1] };
 }
 
-export function needsRenewal(expiresAt: number, now: number): boolean {
+function needsRenewal(expiresAt: number, now: number): boolean {
 	return expiresAt - now < SESSION_RENEW_BELOW_MS;
 }
 
 /** Inserts a session (hashed secret) and returns the `<id>.<secret>` cookie value. Also clears the
  *  user's expired rows, so the table doesn't grow forever. */
-export async function createSession(db: AuthDb, userId: number, now = Date.now()) {
+async function createSession(db: AuthDb, userId: number, now = Date.now()) {
 	const id = Crypto.getRandomSecret(16);
 	const secret = Crypto.getRandomSecret(32);
 	const expiresAt = now + SESSION_LIFETIME_MS;
@@ -42,7 +54,7 @@ export async function createSession(db: AuthDb, userId: number, now = Date.now()
 }
 
 /** The live session and its user for a cookie value, or `null` if unknown, forged or expired. */
-export async function validateSession(
+async function validateSession(
 	db: AuthDb,
 	token: string,
 	now = Date.now()
@@ -66,12 +78,24 @@ export async function validateSession(
 }
 
 /** Pushes a session's expiry out to a full lifetime again; returns the new expiry. */
-export async function renewSession(db: AuthDb, sessionId: string, now = Date.now()) {
+async function renewSession(db: AuthDb, sessionId: string, now = Date.now()) {
 	const expiresAt = now + SESSION_LIFETIME_MS;
 	await db.update(sessions).set({ expiresAt, lastUsedAt: now }).where(eq(sessions.id, sessionId));
 	return expiresAt;
 }
 
-export async function deleteSession(db: AuthDb, sessionId: string): Promise<void> {
+async function deleteSession(db: AuthDb, sessionId: string): Promise<void> {
 	await db.delete(sessions).where(eq(sessions.id, sessionId));
 }
+
+export const Sessions = {
+	cookieAttributes: sessionCookieAttributes,
+	create: createSession,
+	delete: deleteSession,
+	LIFETIME_MS: SESSION_LIFETIME_MS,
+	needsRenewal,
+	renew: renewSession,
+	RENEW_BELOW_MS: SESSION_RENEW_BELOW_MS,
+	splitToken: splitSessionToken,
+	validate: validateSession,
+};

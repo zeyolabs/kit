@@ -9,9 +9,9 @@ import type { AuthSession, AuthUser } from './sessions';
 
 import { ACCESS_JWT_HEADER, verifyAccessJwt } from '../../cloudflare/access';
 import { Error401 } from '../../utils/errors';
-import { auth, sessionCookieAttributes } from '../config';
-import { emailsMatch } from '../users';
-import { deleteSession, needsRenewal, renewSession, validateSession } from './sessions';
+import { Auth } from '../config';
+import { Users } from '../users';
+import { Sessions } from './sessions';
 
 /** What the handle puts on `event.locals`. Apps extend it: `interface Locals extends AuthLocals`. */
 export type AuthLocals = AccountLocals & {
@@ -31,7 +31,9 @@ export type AuthHandleOptions = {
 	publicPaths?: readonly string[];
 };
 
-export const authLocals = (event: RequestEvent) => event.locals as unknown as AuthLocals;
+function authLocals(event: RequestEvent): AuthLocals {
+	return event.locals as unknown as AuthLocals;
+}
 
 const matches = (pathname: string, paths: readonly string[]) =>
 	paths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -52,9 +54,9 @@ const isApiRequest = (event: RequestEvent) =>
  *      requests get a 401.
  * A session in its second half is renewed (sliding expiry).
  */
-export function createAuthHandle(options: AuthHandleOptions = {}): Handle {
+function createAuthHandle(options: AuthHandleOptions = {}): Handle {
 	return async ({ event, resolve }) => {
-		const config = auth();
+		const config = Auth.config();
 		const locals = authLocals(event);
 		locals.accessEmail = null;
 		locals.session = null;
@@ -78,24 +80,24 @@ export function createAuthHandle(options: AuthHandleOptions = {}): Handle {
 		const db = config.db();
 		const token = event.cookies.get(config.cookieName);
 		if (token) {
-			const live = await validateSession(db, token);
+			const live = await Sessions.validate(db, token);
 			const ok =
 				live &&
 				(await config.isAllowed(live.user.email)) &&
-				(!locals.accessEmail || emailsMatch(locals.accessEmail, live.user.email));
+				(!locals.accessEmail || Users.emailsMatch(locals.accessEmail, live.user.email));
 			if (ok) {
 				locals.session = live.session;
 				locals.user = live.user;
-				if (needsRenewal(live.session.expiresAt, Date.now())) {
-					const expiresAt = await renewSession(db, live.session.id);
+				if (Sessions.needsRenewal(live.session.expiresAt, Date.now())) {
+					const expiresAt = await Sessions.renew(db, live.session.id);
 					locals.session = { ...live.session, expiresAt };
 					event.cookies.set(config.cookieName, token, {
-						...sessionCookieAttributes,
+						...Sessions.cookieAttributes,
 						expires: new Date(expiresAt),
 					});
 				}
 			} else {
-				if (live) await deleteSession(db, live.session.id);
+				if (live) await Sessions.delete(db, live.session.id);
 				event.cookies.delete(config.cookieName, { path: '/' });
 			}
 		}
@@ -109,8 +111,14 @@ export function createAuthHandle(options: AuthHandleOptions = {}): Handle {
 }
 
 /** The signed-in user, or a thrown 401 `ServiceError`. For remote functions behind the handle. */
-export function requireUser(event: RequestEvent): AuthUser {
+function requireUser(event: RequestEvent): AuthUser {
 	const { user } = authLocals(event);
 	if (!user) throw Error401('Sign in first');
 	return user;
 }
+
+export const AuthHandle = {
+	create: createAuthHandle,
+	locals: authLocals,
+	requireUser,
+};

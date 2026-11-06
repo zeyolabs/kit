@@ -54,7 +54,7 @@ let current: null | ResolvedAuthConfig = null;
 
 /** Registers the app's auth config. Call once at module scope (e.g. next to `secretNames`), so
  *  importing the hooks file registers it. */
-export function configureAuth(
+function configureAuth(
 	config: AuthConfig & Partial<Omit<ResolvedAuthConfig, keyof AuthConfig>>
 ): void {
 	current = {
@@ -66,24 +66,12 @@ export function configureAuth(
 	};
 }
 
-export function auth(): ResolvedAuthConfig {
+function auth(): ResolvedAuthConfig {
 	if (!current) throw new Error('configureAuth() has not been called');
 	return current;
 }
 
-/** Session lifetime and sliding renewal: a session used with less than `RENEW_BELOW_MS` left is
- *  pushed out to a full `SESSION_LIFETIME_MS` again. */
-export const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
-export const SESSION_RENEW_BELOW_MS = 15 * 24 * 60 * 60 * 1000;
-
-/** Adding a passkey needs a session signed in this recently, so a stolen session cookie can't
- *  quietly plant a lasting credential. */
-export const FRESH_SESSION_MS = 15 * 60 * 1000;
-
-/** Session cookie: host-only (no `domain`), `secure` always (browsers treat localhost as secure). */
-export const sessionCookieAttributes = {
-	httpOnly: true,
-	path: '/',
-	sameSite: 'lax',
-	secure: true,
-} as const;
+export const Auth = {
+	config: auth,
+	configure: configureAuth,
+};

@@ -41,6 +41,10 @@ import { passkeys } from '../../schema';
 
 const ALGORITHMS = [coseAlgorithmES256, coseAlgorithmRS256];
 
+/** Adding a passkey needs a session signed in this recently, so a stolen session cookie can't
+ *  quietly plant a lasting credential. */
+const FRESH_SESSION_MS = 15 * 60 * 1000;
+
 /** The relying party: where the ceremony runs. `id` is the hostname (`origin` without scheme). */
 export type RelyingParty = { id: string; name: string; origin: string };
 
@@ -74,12 +78,12 @@ export const AuthenticationResponse = z.object({
 export type AuthenticationResponse = z.infer<typeof AuthenticationResponse>;
 
 /** A fresh challenge, base64url. The caller keeps it (a short-lived cookie) until the response. */
-export function newChallenge(): string {
+function newChallenge(): string {
 	return encodeBase64urlNoPadding(crypto.getRandomValues(new Uint8Array(32)));
 }
 
 /** `PublicKeyCredentialCreationOptionsJSON` for adding a passkey to `user`. */
-export function registrationOptions(
+function registrationOptions(
 	rp: RelyingParty,
 	user: AuthUser,
 	challenge: string,
@@ -102,7 +106,7 @@ export function registrationOptions(
 }
 
 /** `PublicKeyCredentialRequestOptionsJSON` for a username-less (discoverable) sign-in. */
-export function authenticationOptions(rp: RelyingParty, challenge: string) {
+function authenticationOptions(rp: RelyingParty, challenge: string) {
 	return {
 		allowCredentials: [],
 		challenge,
@@ -136,11 +140,7 @@ function checkClientData(
 }
 
 /** Verifies a registration response and returns the credential to store. */
-export function verifyRegistration(
-	response: RegistrationResponse,
-	challenge: string,
-	rp: RelyingParty
-) {
+function verifyRegistration(response: RegistrationResponse, challenge: string, rp: RelyingParty) {
 	checkClientData(
 		decode(response.response.clientDataJSON, 'clientDataJSON'),
 		ClientDataType.Create,
@@ -177,7 +177,7 @@ export function verifyRegistration(
 }
 
 /** Verifies a sign-in response against the stored passkey; returns the new signature counter. */
-export function verifyAuthentication(
+function verifyAuthentication(
 	response: AuthenticationResponse,
 	challenge: string,
 	rp: RelyingParty,
@@ -216,7 +216,7 @@ export function verifyAuthentication(
 	return count;
 }
 
-export async function listPasskeys(db: AuthDb, userId: number) {
+async function listPasskeys(db: AuthDb, userId: number) {
 	return db
 		.select({
 			createdAt: passkeys.createdAt,
@@ -229,12 +229,12 @@ export async function listPasskeys(db: AuthDb, userId: number) {
 		.orderBy(passkeys.createdAt);
 }
 
-export async function findPasskey(db: AuthDb, id: string) {
+async function findPasskey(db: AuthDb, id: string) {
 	const [row] = await db.select().from(passkeys).where(eq(passkeys.id, id)).limit(1);
 	return row ?? null;
 }
 
-export async function savePasskey(
+async function savePasskey(
 	db: AuthDb,
 	userId: number,
 	name: string,
@@ -244,7 +244,7 @@ export async function savePasskey(
 	await db.insert(passkeys).values({ ...credential, createdAt: now, name, userId });
 }
 
-export async function recordPasskeyUse(
+async function recordPasskeyUse(
 	db: AuthDb,
 	id: string,
 	signCount: number,
@@ -254,10 +254,24 @@ export async function recordPasskeyUse(
 }
 
 /** Deletes one of `userId`'s passkeys; `false` if it isn't theirs. */
-export async function deletePasskey(db: AuthDb, userId: number, id: string): Promise<boolean> {
+async function deletePasskey(db: AuthDb, userId: number, id: string): Promise<boolean> {
 	const deleted = await db
 		.delete(passkeys)
 		.where(and(eq(passkeys.id, id), eq(passkeys.userId, userId)))
 		.returning({ id: passkeys.id });
 	return deleted.length > 0;
 }
+
+export const Passkeys = {
+	authenticationOptions,
+	delete: deletePasskey,
+	find: findPasskey,
+	FRESH_SESSION_MS,
+	list: listPasskeys,
+	newChallenge,
+	recordUse: recordPasskeyUse,
+	registrationOptions,
+	save: savePasskey,
+	verifyAuthentication,
+	verifyRegistration,
+};

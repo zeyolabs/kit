@@ -4,7 +4,7 @@ import type { MagicLinkMessage } from './config';
 import { renderEmail, renderEmailText } from '../utils/email';
 
 /** The sign-in email: subject, HTML and plain text. */
-export function magicLinkEmail(brand: EmailBrand, message: MagicLinkMessage) {
+function magicLinkEmail(brand: EmailBrand, message: MagicLinkMessage) {
 	const params = {
 		brand,
 		cta: { href: message.url, label: `Sign in to ${brand.name}` },
@@ -26,7 +26,7 @@ export function magicLinkEmail(brand: EmailBrand, message: MagicLinkMessage) {
 }
 
 /** An invitation to join an account. */
-export function inviteEmail(
+function inviteEmail(
 	brand: EmailBrand,
 	invite: { accountName: string; inviter: string; url: string }
 ) {
@@ -50,3 +50,8 @@ export function inviteEmail(
 		text: renderEmailText(params),
 	};
 }
+
+export const AuthEmails = {
+	invite: inviteEmail,
+	magicLink: magicLinkEmail,
+};
