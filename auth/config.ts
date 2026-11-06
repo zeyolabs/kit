@@ -20,6 +20,10 @@ export type AuthConfig = {
 	 *  request, so removing someone signs them out. Unknown emails get the same "check your email"
 	 *  answer as known ones but no email. */
 	isAllowed: (email: string) => boolean;
+	/** The passkey domain (WebAuthn RP id). Default: the request's hostname. Set a parent domain
+	 *  (e.g. `example.com` for `app.example.com`) to share passkeys across its subdomains; it can't
+	 *  change later without orphaning every passkey. */
+	passkeyRpId?: string;
 	/** Delivers the link; see `magicLinkEmail` for a ready-made message. */
 	sendMagicLink: (message: MagicLinkMessage) => Promise<void>;
 };

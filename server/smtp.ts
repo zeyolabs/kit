@@ -17,10 +17,7 @@ export type MailMessage = {
 export type SmtpKeys = { host: string; password: string; port: string; username: string };
 
 /** Connection settings: port 465 is implicit TLS, anything else STARTTLS. */
-export function smtpConnection(
-	settings: { host: string; port: string; username: string },
-	password: string
-) {
+export function smtpConnection(settings: SmtpSettings, password: string) {
 	const port = Number(settings.port);
 	const implicitTls = port === 465;
 	return {
@@ -33,19 +30,27 @@ export function smtpConnection(
 	};
 }
 
+export type SmtpSettings = { host: string; port: string; username: string };
+
+/** Sends through SMTP with explicit settings: for plain Workers without the request context. */
+export async function sendWithSmtp(
+	settings: SmtpSettings,
+	password: string,
+	message: MailMessage
+): Promise<void> {
+	// Loaded lazily: it imports cloudflare:sockets, which only exists on Workers.
+	const { WorkerMailer } = await import('worker-mailer');
+	await WorkerMailer.send(smtpConnection(settings, password), message);
+}
+
 /** Sends through SMTP, reading the settings named by `keys` from `envStore()` (so the password
  *  name must be among the context's `secretNames`). */
 export async function sendSmtpMail(keys: SmtpKeys, message: MailMessage): Promise<void> {
-	// Loaded lazily: it imports cloudflare:sockets, which only exists on Workers.
-	const { WorkerMailer } = await import('worker-mailer');
 	const store = envStore();
-	const connection = smtpConnection(
-		{
-			host: store.string(keys.host),
-			port: store.string(keys.port),
-			username: store.string(keys.username),
-		},
-		store.secret(keys.password)
-	);
-	await WorkerMailer.send(connection, message);
+	const settings = {
+		host: store.string(keys.host),
+		port: store.string(keys.port),
+		username: store.string(keys.username),
+	};
+	await sendWithSmtp(settings, store.secret(keys.password), message);
 }

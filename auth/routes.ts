@@ -54,7 +54,8 @@ export type LoginError = 'expired' | 'mismatch' | 'not_allowed' | 'passkey' | 's
 const challengeCookie = () => `${auth().cookieName}_challenge`;
 
 function relyingParty(event: RequestEvent): RelyingParty {
-	return { id: event.url.hostname, name: auth().appName, origin: event.url.origin };
+	const { appName, passkeyRpId } = auth();
+	return { id: passkeyRpId ?? event.url.hostname, name: appName, origin: event.url.origin };
 }
 
 /** A same-site path to go to after sign-in: never another origin (`//x`, `/\x`, `https:`). */
