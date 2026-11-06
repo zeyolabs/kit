@@ -2,8 +2,8 @@
 
 Shared server toolkit for SvelteKit 3 on Cloudflare Workers: remote-function wrappers
 (`Remote.Query/Cmd/Form`), errors and results, the per-request Cloudflare context
-(`runWithContext`, `workersEnv`), rate limiting, Turnstile, logging and monitoring, storage
-clients, utils, and the shared ESLint config.
+(`runWithContext`, `workersEnv`), passwordless auth, SMTP mail, rate limiting, Turnstile, logging
+and monitoring, storage clients, utils, and the shared ESLint config.
 
 Published as source (TypeScript, no build step): the consuming SvelteKit app compiles it.
 
@@ -28,6 +28,34 @@ git push origin HEAD vYYYY.M.D   # the tag publishes to npm (publish.yaml)
 
 Publishing uses npm trusted publishing: the package's npmjs.com settings trust this repo's
 `publish.yaml`, so no npm token is stored anywhere.
+
+## Auth (`@zeyolabs/kit/auth/*`)
+
+Passwordless sign-in: an emailed magic link or a passkey. No passwords anywhere. Sessions are
+`<id>.<secret>` cookies (sha256 at rest, 30 days, sliding); magic links are single-use and expire
+in 15 minutes; passkeys are verified server-side (ES256/RS256, user verification required).
+
+1. Tables: add `node_modules/@zeyolabs/kit/auth/schema.ts` to the app's drizzle-kit `schema` and
+   generate a migration (`users`, `sessions`, `auth_tokens`, `passkeys`).
+2. Config, once at module scope (e.g. next to `secretNames`):
+   ```ts
+   configureAuth({
+   	appName: 'My app',
+   	db: () => getDb(),
+   	isAllowed: (email) => isEmailAllowed(email, env().ALLOWED_EMAILS),
+   	sendMagicLink: async (m) =>
+   		sendSmtpMail(keys, { from, to: m.email, ...magicLinkEmail(brand, m) }),
+   });
+   ```
+3. Hook, after the context handle: `createAuthHandle({ access })` (pass `access` to also require
+   a matching Cloudflare Access JWT). Type `App.Locals` as `interface Locals extends AuthLocals`.
+4. Routes: `src/routes/auth/[...path]/+server.ts` is
+   `export { POST } from '@zeyolabs/kit/auth/routes';`, and the login page's `+page.server.ts` is
+   `export { loginLoad as load } from '@zeyolabs/kit/auth/loads';`.
+5. The login page (the app's own markup) posts `email` to `/auth/email`; with `?token=` it shows a
+   button posting `token` to `/auth/verify` (so mail scanners can't use the link); its passkey
+   button calls `signInWithPasskey()` from `@zeyolabs/kit/auth/passkey-client`. A settings page
+   uses `passkeysLoad` and `addPasskey(name)`, and posts `id` to `/auth/passkey/delete`.
 
 ## Developing against an app
 

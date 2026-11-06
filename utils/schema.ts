@@ -11,9 +11,6 @@ import { Datetime, Days } from './datetime';
 import { Normalize, titleCase } from './strings/normalize';
 
 const NAME_MAX = 50;
-const PASSWORD_MIN = 10;
-const PASSWORD_MAX = 72;
-const PASSWORD_ALLOWED_CHARS = /^[A-Za-z0-9!@$#()*.%_-]+$/;
 
 const uuid = z.uuid();
 
@@ -131,38 +128,6 @@ export const Schema = {
 
 	/** Non-empty text field (trimmed, min 1 character) */
 	Text: z.string().trim().min(1, 'text cannot be empty'),
-
-	Password: z
-		.string()
-		.min(PASSWORD_MIN, `Must be at least ${PASSWORD_MIN} characters`)
-		.max(PASSWORD_MAX, `Must be at most ${PASSWORD_MAX} characters`)
-		.superRefine((data, ctx) => {
-			if (!PASSWORD_ALLOWED_CHARS.test(data)) {
-				ctx.addIssue({
-					code: 'custom',
-					message: 'invalid characters. Only A–Z, a–z, 0–9, !@$#()*.-_% are allowed.',
-				});
-				return;
-			}
-			if (!/[A-Z]/.test(data)) {
-				ctx.addIssue({ code: 'custom', message: 'must contain at least one uppercase letter.' });
-				return;
-			}
-			if (!/[a-z]/.test(data)) {
-				ctx.addIssue({ code: 'custom', message: 'must contain at least one lowercase letter.' });
-				return;
-			}
-			if (!/[0-9]/.test(data)) {
-				ctx.addIssue({ code: 'custom', message: 'must contain at least one number.' });
-				return;
-			}
-			if (!/[!@$#()*.%-]/.test(data)) {
-				ctx.addIssue({
-					code: 'custom',
-					message: 'must contain at least one special character (!@$#()*.-%).',
-				});
-			}
-		}),
 
 	Domain: z
 		.string()

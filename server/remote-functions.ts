@@ -97,7 +97,7 @@ function remoteForm<S extends z.ZodType, O>(
 		try {
 			return await run(data);
 		} catch (e) {
-			// A ServiceError (wrong password, email in use, ...), a soft Fail, or a directly-thrown
+			// A ServiceError (expired link, email in use, ...), a soft Fail, or a directly-thrown
 			// HttpError becomes an inline form error; anything else is unexpected but still becomes an
 			// inline error, because throwing here would break `<Form>`.
 			if (e instanceof ServiceError) return FormResult.err(e.message);
