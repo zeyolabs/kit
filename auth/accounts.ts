@@ -92,8 +92,11 @@ export async function listPolicies(
 		.from(accountPolicies)
 		.where(eq(accountPolicies.accountId, accountId))
 		.orderBy(asc(accountPolicies.name));
+	const builtIn = builtInPolicies(catalogue);
 	return [
-		...Object.values(builtInPolicies(catalogue)),
+		builtIn.owner,
+		builtIn.admin,
+		builtIn.member,
 		...custom.map((p) => ({
 			builtIn: false,
 			key: p.key,
