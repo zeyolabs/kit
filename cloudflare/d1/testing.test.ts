@@ -45,6 +45,10 @@ describe('testDb', () => {
 				.prepare(`SELECT ${placeholders}`)
 				.bind(...params)
 				.all()
-		).rejects.toThrow();
+		).rejects.toThrow('too many SQL variables');
 	});
+
+	it('disposes Miniflare when a migration fails', async () => {
+		await expect(testDb({ migrations: ['NOT VALID SQL'] })).rejects.toThrow();
+	}, 60_000);
 });

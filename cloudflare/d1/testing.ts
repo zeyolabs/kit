@@ -1,4 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types';
+import type { Miniflare as MiniflareClass } from 'miniflare';
 
 import { drizzle } from 'drizzle-orm/d1';
 
@@ -23,23 +24,37 @@ export type TestDb<Schema extends Record<string, unknown>> = {
 export async function testDb<
 	Schema extends Record<string, unknown> = Record<string, never>,
 >(options: { migrations: readonly string[]; schema?: Schema }): Promise<TestDb<Schema>> {
-	const { Miniflare } = await import('miniflare');
+	let Miniflare: typeof MiniflareClass;
+	try {
+		({ Miniflare } = await import('miniflare'));
+	} catch (error) {
+		throw new Error(
+			'testDb needs the optional peer dependency "miniflare": add it to your devDependencies.',
+			{ cause: error }
+		);
+	}
 	const miniflare = new Miniflare({
 		d1Databases: { DB: crypto.randomUUID() },
 		modules: true,
 		script: 'export default { fetch() { return new Response(null); } }',
 	});
-	const d1 = (await miniflare.getD1Database('DB')) as unknown as D1Database;
-	const statements = options.migrations
-		.flatMap((migration) => migration.split('--> statement-breakpoint'))
-		.map((statement) => statement.trim())
-		.filter((statement) => statement.length > 0);
-	if (statements.length > 0) {
-		await d1.batch(statements.map((statement) => d1.prepare(statement)));
+	try {
+		const d1 = (await miniflare.getD1Database('DB')) as unknown as D1Database;
+		const statements = options.migrations
+			.flatMap((migration) => migration.split('--> statement-breakpoint'))
+			.map((statement) => statement.trim())
+			.filter((statement) => statement.length > 0);
+		if (statements.length > 0) {
+			await d1.batch(statements.map((statement) => d1.prepare(statement)));
+		}
+		return {
+			close: () => miniflare.dispose(),
+			d1,
+			db: drizzle(d1, { schema: options.schema }) as TestDb<Schema>['db'],
+		};
+	} catch (error) {
+		// A bad migration must not leave workerd running, or the test run can hang.
+		await miniflare.dispose();
+		throw error;
 	}
-	return {
-		close: () => miniflare.dispose(),
-		d1,
-		db: drizzle(d1, { schema: options.schema }) as TestDb<Schema>['db'],
-	};
 }
