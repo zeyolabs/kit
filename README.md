@@ -80,7 +80,10 @@ Accounts own resources; users reach them through a membership. Resource tables c
   `AccountHandle.requirePermission(event, 'projects.edit')`, or `Accounts.can(membership, key)`.
 - **Invite only.** `isAllowed: (email) => Accounts.hasAccess(db, email)`; invites are emailed links
   to the app's `/invite` page (`AuthLoads.invite`), accepted by posting to `/auth/invite/accept`.
-  `onSignIn` can bootstrap the first owners.
+  For the usual admin setup pass `owners: { account: { name, slug }, emails: () => env().ALLOWED_EMAILS }`
+  instead: those emails may always sign in and become owners of the account (created on first use, via
+  `Accounts.ensureOwner`), and members and invitees may sign in too; `isAllowed` then becomes optional.
+  `onSignIn` still runs after it.
 - **Management.** `@zeyolabs/kit/auth/accounts/accounts.remote` has the queries and commands a members page
   needs (members, invites, policies), each checking the caller's permissions.
 

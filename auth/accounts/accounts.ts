@@ -152,6 +152,31 @@ async function addMember(
 		.onConflictDoNothing();
 }
 
+/**
+ * Makes `userId` an owner of the account with this slug, creating the account on first use. Safe to
+ * call on every sign-in: an existing account is reused, a user who is already a member keeps their
+ * current policy, and two requests creating the same account at once end up with one.
+ */
+async function ensureOwner(
+	db: AuthDb,
+	input: { name: string; slug: string },
+	userId: number,
+	now = Date.now()
+): Promise<AccountSummary> {
+	let account = await findAccountBySlug(db, input.slug);
+	if (!account) {
+		try {
+			account = await createAccount(db, input, undefined, now);
+		} catch (error) {
+			// Lost the race to another request creating the same account: use theirs.
+			account = await findAccountBySlug(db, input.slug);
+			if (!account) throw error;
+		}
+	}
+	await addMember(db, account.id, userId, OWNER, now);
+	return account;
+}
+
 async function listMembers(db: AuthDb, actor: Membership) {
 	assertCan(actor, 'members.read');
 	return db
@@ -318,6 +343,7 @@ export const Accounts = {
 	can,
 	create: createAccount,
 	deletePolicy,
+	ensureOwner,
 	findBySlug: findAccountBySlug,
 	findPolicy,
 	hasAccess: hasAccountAccess,

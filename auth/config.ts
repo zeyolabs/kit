@@ -5,6 +5,9 @@ import type { EmailBrand } from '../utils/email';
 import type { PermissionCatalogue } from './accounts/permissions';
 import type { AuthUser } from './sessions/sessions';
 
+import { Accounts } from './accounts/accounts';
+import { Allowlist } from './users';
+
 /** Any async drizzle SQLite client (D1 in prod). A consumer's larger, schema-bound `Db` is
  *  assignable. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,9 +40,20 @@ export type AuthConfig = {
 	 *  request, so removing someone signs them out. Unknown emails get the same "check your email"
 	 *  answer as known ones but no email. Invite-only apps use `hasAccountAccess` (a member of
 	 *  some account, or invited to one). */
-	isAllowed: (email: string) => boolean | Promise<boolean>;
-	/** Runs after each sign-in, e.g. to make bootstrap emails owners of the app's account. */
+	isAllowed?: (email: string) => boolean | Promise<boolean>;
+	/** Runs after each sign-in, after the `owners` step if that is set. */
 	onSignIn?: (user: AuthUser) => Promise<void>;
+	/**
+	 * Invite-only bootstrap, the usual admin setup: the emails in `emails` (a comma-separated
+	 * allowlist var, read per call) may always sign in and become owners of `account` on their first
+	 * sign-in (the account is created if it doesn't exist). Anyone else may sign in if they are a
+	 * member of an account or invited to one. With this set, `isAllowed` is optional and, if given,
+	 * is checked in addition (an email passes if either allows it).
+	 */
+	owners?: {
+		account: { name: string; slug: string };
+		emails: () => string | undefined;
+	};
 	/** The passkey domain (WebAuthn RP id). Default: the request's hostname. Set a parent domain
 	 *  (e.g. `example.com` for `app.example.com`) to share passkeys across its subdomains; it can't
 	 *  change later without orphaning every passkey. */
@@ -52,6 +66,8 @@ export type ResolvedAuthConfig = AuthConfig & {
 	cookieName: string;
 	/** The page that shows an invite (`inviteLoad`). Default: `/invite`. */
 	invitePath: string;
+	/** Always set: the app's `isAllowed`, or the one built from `owners`. */
+	isAllowed: (email: string) => boolean | Promise<boolean>;
 	loginPath: string;
 };
 
@@ -62,12 +78,32 @@ let current: null | ResolvedAuthConfig = null;
 function configureAuth(
 	config: AuthConfig & Partial<Omit<ResolvedAuthConfig, keyof AuthConfig>>
 ): void {
+	const { isAllowed, onSignIn, owners } = config;
+	if (!isAllowed && !owners) {
+		throw new Error('configureAuth() needs isAllowed or owners');
+	}
+	const db = config.db;
+	const isOwnerEmail = (email: string) => !!owners && Allowlist.includes(email, owners.emails());
 	current = {
 		accountHome: (slug) => `/${slug}`,
 		cookieName: 'session',
 		invitePath: '/invite',
 		loginPath: '/login',
 		...config,
+		isAllowed: owners
+			? async (email) =>
+					isOwnerEmail(email) ||
+					(await Accounts.hasAccess(db(), email)) ||
+					(isAllowed ? await isAllowed(email) : false)
+			: isAllowed!,
+		onSignIn: owners
+			? async (user) => {
+					if (isOwnerEmail(user.email)) {
+						await Accounts.ensureOwner(db(), owners.account, user.id);
+					}
+					await onSignIn?.(user);
+				}
+			: onSignIn,
 	};
 }
 
