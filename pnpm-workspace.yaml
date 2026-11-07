@@ -2,3 +2,4 @@ allowBuilds:
   '@bufbuild/buf': true
   core-js-pure: true
   esbuild: true
+  workerd: true

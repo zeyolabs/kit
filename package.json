@@ -48,6 +48,7 @@
 		"./cloudflare/*": "./cloudflare/*.ts",
 		"./cloudflare/context": "./cloudflare/context.ts",
 		"./cloudflare/amqp": "./cloudflare/amqp/client.ts",
+		"./cloudflare/d1/testing": "./cloudflare/d1/testing.ts",
 		"./cloudflare/dispatch": "./cloudflare/dispatch/client.ts",
 		"./cloudflare/email": "./cloudflare/email/client.ts",
 		"./cloudflare/email/dev": "./cloudflare/email/dev.ts",
@@ -118,6 +119,7 @@
 		"@sveltejs/kit": "^3.1.1",
 		"drizzle-orm": "^0.45.3",
 		"eslint": "^9.39.4",
+		"miniflare": "^4.20260730.0",
 		"vitest": "^4.1.11",
 		"zod": "^4.6.5"
 	},
@@ -129,6 +131,9 @@
 			"optional": true
 		},
 		"eslint": {
+			"optional": true
+		},
+		"miniflare": {
 			"optional": true
 		},
 		"vitest": {
@@ -147,6 +152,7 @@
 		"@types/snappyjs": "0.7.1",
 		"drizzle-orm": "0.45.3",
 		"eslint": "9.39.4",
+		"miniflare": "4.20260730.0",
 		"prettier": "3.9.9",
 		"svelte": "5.57.3",
 		"typescript": "6.0.3",
