@@ -113,3 +113,54 @@ export const drizzleRules = {
 		'drizzle/enforce-update-with-where': ['error', { drizzleObjectName }],
 	},
 };
+
+/**
+ * Layer boundaries (see `standards/codex`): edges (remote functions, endpoints, hooks) reach the db
+ * only through managers; services never import managers; clients and libraries import nothing
+ * above them. Files are matched by name, so features keep `manager.server.ts`,
+ * `service.server.ts` and `client.server.ts` (or a `clients/` folder) and libraries live in `utils/`.
+ * Starts as a warning so existing code can migrate; pass `severity: 'error'` once it is clean.
+ * Override any glob in `globs` for an app with a different layout.
+ * @param {{ severity?: 'error' | 'warn', globs?: { client?: string[], edge?: string[], library?: string[], manager?: string[], service?: string[] } }} [options]
+ */
+export function layerBoundaryRules(options = {}) {
+	const severity = options.severity ?? 'warn';
+	const globs = {
+		client: ['**/client.server.ts', '**/clients/**/*.ts'],
+		edge: ['**/*.remote.ts', '**/+server.ts', '**/+page.server.ts', '**/hooks.server.ts'],
+		library: ['**/utils/**/*.ts'],
+		manager: ['**/manager.server.ts'],
+		service: ['**/service.server.ts'],
+		...options.globs,
+	};
+	const importing = (group, message) => ({
+		group,
+		message,
+	});
+	const imports = {
+		client: ['**/client.server', '**/client.server.ts', '**/clients/**'],
+		manager: ['**/manager.server', '**/manager.server.ts'],
+		service: ['**/service.server', '**/service.server.ts'],
+	};
+	const rule = (files, patterns) => ({
+		files,
+		rules: { 'no-restricted-imports': [severity, { patterns }] },
+	});
+	return [
+		rule(globs.edge, [
+			importing(imports.service, 'Edges call managers, not services (layer boundary).'),
+		]),
+		rule(globs.service, [
+			importing(imports.manager, 'Services must not import managers (layer boundary).'),
+		]),
+		rule(globs.client, [
+			importing(imports.manager, 'Clients must not import managers (layer boundary).'),
+			importing(imports.service, 'Clients must not import services (layer boundary).'),
+		]),
+		rule(globs.library, [
+			importing(imports.manager, 'Libraries must not import managers (layer boundary).'),
+			importing(imports.service, 'Libraries must not import services (layer boundary).'),
+			importing(imports.client, 'Libraries must not import clients (layer boundary).'),
+		]),
+	];
+}
