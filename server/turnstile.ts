@@ -42,10 +42,9 @@ export function turnstileGate(
 		handler: (data: Omit<TData, 'turnstileToken'>) => Promise<FormResult<TResult | void>>
 	): (data: TData) => Promise<FormResult<TResult | void>> {
 		return async ({ turnstileToken, ...data }: TData) => {
+			if (!turnstileToken) return FormResult.err(message);
 			const { ip, secret } = await context();
-			if (!turnstileToken || !(await verifyTurnstile(turnstileToken, ip, secret))) {
-				return FormResult.err(message);
-			}
+			if (!(await verifyTurnstile(turnstileToken, ip, secret))) return FormResult.err(message);
 			return handler(data as Omit<TData, 'turnstileToken'>);
 		};
 	};
