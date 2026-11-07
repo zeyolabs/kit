@@ -113,3 +113,71 @@ export const drizzleRules = {
 		'drizzle/enforce-update-with-where': ['error', { drizzleObjectName }],
 	},
 };
+
+/**
+ * Layer boundaries (see `standards/codex`): edges (remote functions, endpoints, hooks) reach the db
+ * only through managers; services never import managers; clients and libraries import nothing
+ * above them. Files are matched by name, so features keep `manager.server.ts`,
+ * `service.server.ts` and `client.server.ts` (or a `clients/` folder) and libraries live in `utils/`.
+ *
+ * - Starts as a warning so existing code can migrate; pass `severity: 'error'` once it is clean.
+ * - A file belongs to the first group it matches, in the order edge, service, client, library, so
+ *   `utils/clients/x.ts` is a client and gets only the client rules.
+ * - Flat config does not merge `no-restricted-imports` across entries. Put these rules LAST, and
+ *   pass your own restricted-import patterns as `extraPatterns` (added to every group).
+ * - Matching is by import specifier, so a barrel re-export bypasses it. An app with another layout
+ *   (e.g. `services/*.ts`) passes its own `globs` (which files are which layer) and `imports`
+ *   (which specifiers each layer is imported by). A green lint is not proof the boundaries hold.
+ * @param {{
+ *   severity?: 'error' | 'warn',
+ *   globs?: { client?: string[], edge?: string[], library?: string[], service?: string[] },
+ *   imports?: { client?: string[], manager?: string[], service?: string[] },
+ *   extraPatterns?: { group: string[], message?: string }[],
+ * }} [options]
+ */
+export function layerBoundaryRules(options = {}) {
+	const severity = options.severity ?? 'warn';
+	const extra = options.extraPatterns ?? [];
+	const globs = {
+		client: ['**/client.server.ts', '**/clients/**/*.ts'],
+		edge: ['**/*.remote.ts', '**/+server.ts', '**/+page.server.ts', '**/hooks.server.ts'],
+		library: ['**/utils/**/*.ts'],
+		service: ['**/service.server.ts'],
+		...options.globs,
+	};
+	const imports = {
+		client: ['**/client.server', '**/client.server.ts', '**/clients/**'],
+		manager: ['**/manager.server', '**/manager.server.ts'],
+		service: ['**/service.server', '**/service.server.ts'],
+		...options.imports,
+	};
+	const forbid = (group, message) => ({ group, message });
+	// First match wins: each group ignores the files of the groups before it.
+	const groups = [
+		[globs.edge, [forbid(imports.service, 'Edges call managers, not services (layer boundary).')]],
+		[
+			globs.service,
+			[forbid(imports.manager, 'Services must not import managers (layer boundary).')],
+		],
+		[
+			globs.client,
+			[
+				forbid(imports.manager, 'Clients must not import managers (layer boundary).'),
+				forbid(imports.service, 'Clients must not import services (layer boundary).'),
+			],
+		],
+		[
+			globs.library,
+			[
+				forbid(imports.manager, 'Libraries must not import managers (layer boundary).'),
+				forbid(imports.service, 'Libraries must not import services (layer boundary).'),
+				forbid(imports.client, 'Libraries must not import clients (layer boundary).'),
+			],
+		],
+	];
+	return groups.map(([files, patterns], index) => ({
+		files,
+		ignores: groups.slice(0, index).flatMap(([earlier]) => earlier),
+		rules: { 'no-restricted-imports': [severity, { patterns: [...patterns, ...extra] }] },
+	}));
+}
