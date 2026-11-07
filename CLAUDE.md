@@ -18,3 +18,8 @@ Workers. Used by `@zeyolabs/ui`, `@zeyolabs/shopping` and apps (Pure Leaves).
   peers so the app's single copy is used.
 - Merging to `main` publishes a new `YYYY.M.N` version automatically (see README). Never tag or
   publish by hand.
+- Layer lint: `layerBoundaryRules()` in `eslint-config` warns on edge-to-service, service-to-manager,
+  client-to-manager/service and library-to-manager/service/client imports. Put it LAST in the app's
+  config (flat config does not merge `no-restricted-imports`) and pass the app's own patterns as
+  `extraPatterns`. It matches by file and import name, so an app with another layout passes
+  `globs` and `imports`; barrel re-exports bypass it, so a green lint is not proof boundaries hold.
