@@ -18,6 +18,10 @@ Workers. Used by `@zeyolabs/ui`, `@zeyolabs/shopping` and apps (Pure Leaves).
   peers so the app's single copy is used.
 - Merging to `main` publishes a new `YYYY.M.N` version automatically (see README). Never tag or
   publish by hand.
+- D1 tests: `cloudflare/d1/testing.ts` (`createD1TestDb`, `mockD1`) runs a real D1 on Miniflare. An app
+  wraps it once in `tests/db.ts` (its schema, migrations, fixtures) and tests call that `mockDb()`.
+  The `undici` and `sharp` overrides in `pnpm-workspace.yaml` only apply inside this repo, so an app
+  that adds `miniflare` must set the same overrides (`undici` 7.30.1 or newer, `sharp` 0.35.5).
 - Layer lint: `layerBoundaryRules()` in `eslint-config` warns on edge-to-service, service-to-manager,
   client-to-manager/service and library-to-manager/service/client imports. Put it LAST in the app's
   config (flat config does not merge `no-restricted-imports`) and pass the app's own patterns as
