@@ -15,12 +15,15 @@ export function requirePermission(membership: Membership | null, permission: str
 	return membership;
 }
 
-/** Runs `fn` with the checked membership, or throws a 403 before `fn` is called. */
-export async function withPermission<T>(
-	principal: { membership: Membership | null },
+/**
+ * Runs `fn` with the principal (membership now non-null), or throws a 403 before `fn` is called.
+ * Anything else the edge put on the principal (member id, actor kind, account id) comes through.
+ */
+export async function withPermission<P extends { membership: Membership | null }, T>(
+	principal: P,
 	permission: string,
-	fn: (principal: { membership: Membership }) => Promise<T> | T
+	fn: (principal: P & { membership: Membership }) => Promise<T> | T
 ): Promise<T> {
 	const membership = requirePermission(principal.membership, permission);
-	return await fn({ membership });
+	return await fn({ ...principal, membership });
 }

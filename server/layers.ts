@@ -8,18 +8,18 @@ import { waitUntil } from '../cloudflare/wait-until';
  * Who a service acts for. A service is built as `new XService(ctx, db)` and every query it runs is
  * scoped by `ctx.accountId`; `memberId` and `kind` identify the actor for audit and events.
  */
-export type ServiceCtx = {
+export type ServiceCtx<Kind extends string = string> = {
 	accountId: number;
-	kind: string;
+	kind: Kind;
 	memberId: number;
 };
 
-/** What a service mutation returns: the value for the caller plus the events it caused. */
-export type Mutation<T, E> = { events: E[]; value: T };
+/** What a service mutation returns: the result for the caller plus the events it caused. */
+export type Mutation<T, E> = { events: E[]; result: T };
 
 /** Builds a `Mutation`. `events` defaults to none. */
-export function mutation<T, E>(value: T, events: E[] = []): Mutation<T, E> {
-	return { events, value };
+export function mutation<T, E>(result: T, events: E[] = []): Mutation<T, E> {
+	return { events, result };
 }
 
 /**

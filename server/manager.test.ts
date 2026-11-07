@@ -45,6 +45,16 @@ describe('withPermission', () => {
 		expect(result).toBe(2);
 	});
 
+	it('passes extra principal fields through', async () => {
+		const membership = membershipWith('projects.read');
+		const kind = await withPermission(
+			{ kind: 'agent', membership },
+			'projects.read',
+			(principal) => principal.kind
+		);
+		expect(kind).toBe('agent');
+	});
+
 	it('does not call fn when denied', async () => {
 		const fn = vi.fn();
 		await expect(withPermission({ membership: null }, 'projects.read', fn)).rejects.toThrow(
@@ -56,7 +66,7 @@ describe('withPermission', () => {
 
 describe('mutation', () => {
 	it('carries the value and its events, defaulting to none', () => {
-		expect(mutation('ok', ['created'])).toEqual({ events: ['created'], value: 'ok' });
+		expect(mutation('ok', ['created'])).toEqual({ events: ['created'], result: 'ok' });
 		expect(mutation(1).events).toEqual([]);
 	});
 });
