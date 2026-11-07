@@ -16,7 +16,10 @@ const rel = (file: string) => relative(root, file).replaceAll('\\', '/');
 const isShipped = (file: string) => {
 	const path = rel(file);
 	const listed = included.some((entry) => path === entry || path.startsWith(`${entry}/`));
-	return listed && !excluded.some((pattern) => matchesGlob(path, pattern));
+	return (
+		listed &&
+		!excluded.some((pattern) => matchesGlob(path, pattern) || matchesGlob(path, `${pattern}/**`))
+	);
 };
 
 function walk(dir: string): string[] {
