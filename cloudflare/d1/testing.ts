@@ -26,7 +26,9 @@ export type D1TestDb<TSchema extends Record<string, unknown>> = {
  * A fresh, fully-migrated in-memory D1 for one test file, wrapped in drizzle over `schema`. Each
  * `migrations` entry is one SQL statement or a drizzle migration file's contents
  * (`--> statement-breakpoint` separates its statements), applied in order. `frozenTime`, if given,
- * freezes the clock until `close()` so fixture data computed relative to "now" is stable.
+ * freezes `Date` until `close()` so fixture data computed relative to "now" is stable. The clock
+ * stays frozen for the whole test file, so code that measures elapsed time with `Date.now()` (and
+ * `vi.waitFor`) sees it frozen too.
  */
 export async function createD1TestDb<TSchema extends Record<string, unknown>>(
 	schema: TSchema,
