@@ -173,14 +173,7 @@ function next(expr: string, timeZone = 'UTC', after: Date | number = Date.now())
 	for (let i = 0; i < SEARCH_DAYS; i++) {
 		const dayStart = startDay + i * MS_PER_DAY;
 		const date = new Date(dayStart);
-		if (
-			!dayMatches(
-				parsed,
-				date.getUTCMonth() + 1,
-				date.getUTCDate(),
-				date.getUTCDay()
-			)
-		) {
+		if (!dayMatches(parsed, date.getUTCMonth() + 1, date.getUTCDate(), date.getUTCDay())) {
 			continue;
 		}
 		for (const hour of parsed.hours) {
