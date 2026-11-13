@@ -3,7 +3,7 @@ import { and, asc, eq, gt, isNull, ne, or, sql } from 'drizzle-orm';
 import type { AuthDb } from '../config';
 import type { PermissionCatalogue, Policy } from './permissions';
 
-import { Error400, Error403, Error404, Error409 } from '../../utils/errors';
+import { Error400, Error403, Error404, Error409, ServiceError } from '../../utils/errors';
 import { accountInvites, accountMembers, accountPolicies, accounts, users } from '../schema';
 import { Permissions } from './permissions';
 
@@ -168,8 +168,9 @@ async function ensureOwner(
 		try {
 			account = await createAccount(db, input, undefined, now);
 		} catch (error) {
-			// Lost the race: createAccount throws Error409 ('That address is taken') when another
+			// Lost the race: createAccount throws a 409 ('That address is taken') when another
 			// request created this slug first, so use theirs.
+			if (!(error instanceof ServiceError) || error.status !== 409) throw error;
 			account = await findAccountBySlug(db, input.slug);
 			if (!account) throw error;
 		}
