@@ -49,6 +49,10 @@ export type AuthConfig = {
 	 * sign-in (the account is created if it doesn't exist). Anyone else may sign in if they are a
 	 * member of an account or invited to one. With this set, `isAllowed` is optional and, if given,
 	 * is checked in addition (an email passes if either allows it).
+	 *
+	 * Removing an email from `emails` does not sign out someone who already signed in: their owner
+	 * membership stays and `Accounts.hasAccess` keeps allowing them. Remove them from the account's
+	 * members too (the members page) to revoke access.
 	 */
 	owners?: {
 		account: { name: string; slug: string };
