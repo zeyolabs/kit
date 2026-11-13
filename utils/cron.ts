@@ -9,7 +9,7 @@ import { Error400 } from './errors';
  * - A wall time skipped by spring-forward (02:30 when the clocks jump 02:00 to 03:00) runs once,
  *   shifted by the length of the jump (03:30), so the day is never missed.
  * - A wall time repeated by fall-back runs once, at its first occurrence. A job set to every hour
- *   or minute therefore fires once per local wall time, not twice in the repeated hour.
+ *   or minute therefore skips the repeated hour (vixie-cron would run it twice).
  * - Like vixie-cron, when both day-of-month and day-of-week are restricted (neither starts with
  *   `*`) a day matches if EITHER does; otherwise both must match.
  */
@@ -29,6 +29,7 @@ const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 const MS_PER_MINUTE = 60_000;
 const MS_PER_DAY = 86_400_000;
+const DST_SLACK = 3 * 3_600_000;
 /** Far enough for `0 0 29 2 *` (a leap day can be 8 years away across a skipped century year). */
 const SEARCH_DAYS = 366 * 9;
 
@@ -178,7 +179,11 @@ function next(expr: string, timeZone = 'UTC', after: Date | number = Date.now())
 		}
 		for (const hour of parsed.hours) {
 			for (const minute of parsed.minutes) {
-				const instant = instantOfWall(dayStart + (hour * 60 + minute) * MS_PER_MINUTE, timeZone);
+				const wall = dayStart + (hour * 60 + minute) * MS_PER_MINUTE;
+				// A wall time more than SLACK before now can't map to a later instant: skip the
+				// (slow) conversion. Offsets never change by more than a couple of hours at once.
+				if (wall < startWall - DST_SLACK) continue;
+				const instant = instantOfWall(wall, timeZone);
 				if (instant > start) return instant;
 			}
 		}
@@ -191,6 +196,8 @@ function validate(expr: string, timeZone = 'UTC'): null | string {
 	try {
 		formatter(timeZone);
 		parse(expr);
+		// Also catches schedules that parse but never fire, like `0 0 31 2 *`.
+		next(expr, timeZone, 0);
 		return null;
 	} catch (error) {
 		return error instanceof Error ? error.message : 'Not a valid schedule';

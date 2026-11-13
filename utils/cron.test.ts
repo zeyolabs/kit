@@ -181,6 +181,7 @@ describe('Cron.validate and errors', () => {
 		expect(Cron.validate('*/5 * * * *')).toBeNull();
 		expect(Cron.validate('0 9 * * mon-fri', 'Europe/London')).toBeNull();
 		expect(Cron.validate('  0   9 * * 1  ')).toBeNull();
+		expect(Cron.validate('0 0 29 2 *')).toBeNull();
 	});
 
 	it.each([
@@ -201,6 +202,8 @@ describe('Cron.validate and errors', () => {
 		['* * * foo *', 'not a number or name'],
 		['1-2-3 * * * *', 'not valid'],
 		['1,,2 * * * *', 'not valid'],
+		['0 0 31 2 *', 'never fires'],
+		['0 0 31 4,6,9,11 *', 'never fires'],
 	])('rejects %j', (expr, message) => {
 		expect(Cron.validate(expr)).toContain(message);
 		expect(() => Cron.next(expr, 'UTC', 0)).toThrow(message);
