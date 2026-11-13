@@ -155,7 +155,7 @@ async function addMember(
 /**
  * Makes `userId` an owner of the account with this slug, creating the account on first use. Safe to
  * call on every sign-in: an existing account is reused, a user who is already a member keeps their
- * current policy, and two requests creating the same account at once end up with one.
+ * current policy (never promoted or demoted), and two requests creating the same account at once end up with one.
  */
 async function ensureOwner(
 	db: AuthDb,
@@ -168,7 +168,8 @@ async function ensureOwner(
 		try {
 			account = await createAccount(db, input, undefined, now);
 		} catch (error) {
-			// Lost the race to another request creating the same account: use theirs.
+			// Lost the race: createAccount throws Error409 ('That address is taken') when another
+			// request created this slug first, so use theirs.
 			account = await findAccountBySlug(db, input.slug);
 			if (!account) throw error;
 		}

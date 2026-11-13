@@ -50,6 +50,7 @@ export type AuthConfig = {
 	 * member of an account or invited to one. With this set, `isAllowed` is optional and, if given,
 	 * is checked in addition (an email passes if either allows it).
 	 *
+	 * An email that is already a member keeps their current policy: `owners` never promotes them.
 	 * Removing an email from `emails` does not sign out someone who already signed in: their owner
 	 * membership stays and `Accounts.hasAccess` keeps allowing them. Remove them from the account's
 	 * members too (the members page) to revoke access.
