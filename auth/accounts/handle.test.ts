@@ -82,3 +82,91 @@ describe('AccountHandle.create', () => {
 		});
 	});
 });
+
+describe('Auth.configure owners', () => {
+	const base = () => ({
+		accounts: { memberPermissions: ['projects.read'], permissions: ['projects.read'] },
+		appName: 'Example',
+		db: () => db,
+		email: () => new FakeEmailClient(),
+		emailBrand: {
+			accent: '#000',
+			accentDark: '#000',
+			accentSoft: '#eee',
+			name: 'Example',
+			supportEmail: 'x@example.com',
+		},
+	});
+
+	it('needs isAllowed or owners', () => {
+		expect(() => Auth.configure(base())).toThrow('isAllowed or owners');
+	});
+
+	it('allows owner emails and members, makes owners on sign-in, and still honours onSignIn', async () => {
+		const seen: string[] = [];
+		Auth.configure({
+			...base(),
+			onSignIn: async (user) => void seen.push(user.email),
+			owners: {
+				account: { name: 'Shop', slug: 'shop' },
+				emails: () => 'Boss@Example.com, x@y.com',
+			},
+		});
+		const config = Auth.config();
+		expect(await config.isAllowed('boss@example.com')).toBe(true);
+		expect(await config.isAllowed('stranger@example.com')).toBe(false);
+
+		const boss = await Users.findOrCreate(db, 'boss@example.com');
+		await config.onSignIn?.(boss);
+		const shop = await Accounts.findBySlug(db, 'shop');
+		expect(shop).not.toBeNull();
+		expect(await config.isAllowed('boss@example.com')).toBe(true);
+		expect(seen).toEqual(['boss@example.com']);
+
+		const other = await Users.findOrCreate(db, 'other@example.com');
+		await config.onSignIn?.(other);
+		expect(seen).toEqual(['boss@example.com', 'other@example.com']);
+		const members = await Accounts.listForUser(db, other.id);
+		expect(members).toHaveLength(0);
+	});
+
+	it('matches owner emails ignoring case and spaces; an empty or missing list allows nobody', async () => {
+		const account = { name: 'Shop', slug: 'shop' };
+		Auth.configure({ ...base(), owners: { account, emails: () => ' A@x.com ,  B@X.com ' } });
+		expect(await Auth.config().isAllowed('a@x.com')).toBe(true);
+		expect(await Auth.config().isAllowed(' b@x.COM')).toBe(true);
+		Auth.configure({ ...base(), owners: { account, emails: () => undefined } });
+		expect(await Auth.config().isAllowed('a@x.com')).toBe(false);
+		Auth.configure({ ...base(), owners: { account, emails: () => '' } });
+		expect(await Auth.config().isAllowed('a@x.com')).toBe(false);
+	});
+
+	it('does not promote an owner email that is already a member', async () => {
+		const first = await Users.findOrCreate(db, 'first@example.com');
+		const dana = await Users.findOrCreate(db, 'dana@example.com');
+		const shop = await Accounts.create(db, { name: 'Shop', slug: 'shop' }, first.id);
+		await Accounts.addMember(db, shop.id, dana.id, 'member');
+		Auth.configure({
+			...base(),
+			owners: { account: { name: 'Shop', slug: 'shop' }, emails: () => 'dana@example.com' },
+		});
+		await Auth.config().onSignIn?.(dana);
+		const membership = await Accounts.resolveMembership(
+			db,
+			{ memberPermissions: ['projects.read'], permissions: ['projects.read'] },
+			shop.id,
+			dana.id
+		);
+		expect(membership?.policy.key).toBe('member');
+	});
+
+	it('lets an explicit isAllowed add more people', async () => {
+		Auth.configure({
+			...base(),
+			isAllowed: (email) => email === 'extra@example.com',
+			owners: { account: { name: 'Shop', slug: 'shop' }, emails: () => 'boss@example.com' },
+		});
+		expect(await Auth.config().isAllowed('extra@example.com')).toBe(true);
+		expect(await Auth.config().isAllowed('nobody@example.com')).toBe(false);
+	});
+});

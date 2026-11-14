@@ -3,7 +3,7 @@ import { and, asc, eq, gt, isNull, ne, or, sql } from 'drizzle-orm';
 import type { AuthDb } from '../config';
 import type { PermissionCatalogue, Policy } from './permissions';
 
-import { Error400, Error403, Error404, Error409 } from '../../utils/errors';
+import { Error400, Error403, Error404, Error409, ServiceError } from '../../utils/errors';
 import { accountInvites, accountMembers, accountPolicies, accounts, users } from '../schema';
 import { Permissions } from './permissions';
 
@@ -150,6 +150,33 @@ async function addMember(
 		.insert(accountMembers)
 		.values({ accountId, createdAt: now, policy, userId })
 		.onConflictDoNothing();
+}
+
+/**
+ * Makes `userId` an owner of the account with this slug, creating the account on first use. Safe to
+ * call on every sign-in: an existing account is reused, a user who is already a member keeps their
+ * current policy (never promoted or demoted), and two requests creating the same account at once end up with one.
+ */
+async function ensureOwner(
+	db: AuthDb,
+	input: { name: string; slug: string },
+	userId: number,
+	now = Date.now()
+): Promise<AccountSummary> {
+	let account = await findAccountBySlug(db, input.slug);
+	if (!account) {
+		try {
+			account = await createAccount(db, input, undefined, now);
+		} catch (error) {
+			// Lost the race: createAccount throws a 409 ('That address is taken') when another
+			// request created this slug first, so use theirs.
+			if (!(error instanceof ServiceError) || error.status !== 409) throw error;
+			account = await findAccountBySlug(db, input.slug);
+			if (!account) throw error;
+		}
+	}
+	await addMember(db, account.id, userId, OWNER, now);
+	return account;
 }
 
 async function listMembers(db: AuthDb, actor: Membership) {
@@ -318,6 +345,7 @@ export const Accounts = {
 	can,
 	create: createAccount,
 	deletePolicy,
+	ensureOwner,
 	findBySlug: findAccountBySlug,
 	findPolicy,
 	hasAccess: hasAccountAccess,

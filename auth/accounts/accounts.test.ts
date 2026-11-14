@@ -148,3 +148,35 @@ describe('invites', () => {
 		expect(await Accounts.hasAccess(db, 'nobody@example.com', NOW)).toBe(false);
 	});
 });
+
+describe('ensureOwner', () => {
+	it('creates the account on first use and makes the user its owner', async () => {
+		const carolId = (await Users.findOrCreate(db, 'carol@example.com')).id;
+		const account = await Accounts.ensureOwner(db, { name: 'Shop', slug: 'shop' }, carolId, NOW);
+		expect(account).toMatchObject({ name: 'Shop', slug: 'shop' });
+		const membership = await Accounts.resolveMembership(db, catalogue, account.id, carolId);
+		expect(membership?.policy.key).toBe('owner');
+	});
+
+	it('reuses the account and is safe to repeat', async () => {
+		const again = await Accounts.ensureOwner(db, { name: 'Acme', slug: 'acme' }, ownerId, NOW);
+		expect(again.id).toBe(accountId);
+		await Accounts.ensureOwner(db, { name: 'Acme', slug: 'acme' }, ownerId, NOW);
+		expect(await Accounts.listMembers(db, await member(ownerId))).toHaveLength(2);
+	});
+
+	it('does not demote an existing member', async () => {
+		await Accounts.ensureOwner(db, { name: 'Acme', slug: 'acme' }, bobId, NOW);
+		expect((await member(bobId)).policy.key).toBe('member');
+	});
+
+	it('survives two requests creating the same account at once', async () => {
+		const aId = (await Users.findOrCreate(db, 'a@example.com')).id;
+		const bId = (await Users.findOrCreate(db, 'b@example.com')).id;
+		const [a, b] = await Promise.all([
+			Accounts.ensureOwner(db, { name: 'New', slug: 'new-shop' }, aId, NOW),
+			Accounts.ensureOwner(db, { name: 'New', slug: 'new-shop' }, bId, NOW),
+		]);
+		expect(a.id).toBe(b.id);
+	});
+});
