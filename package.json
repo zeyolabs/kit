@@ -105,7 +105,7 @@
 		"eslint-plugin-drizzle": "0.2.3",
 		"eslint-plugin-perfectionist": "5.13.0",
 		"eslint-plugin-svelte": "3.24.1",
-		"globals": "17.13.0",
+		"globals": "17.14.0",
 		"mimetext": "3.0.28",
 		"mysql2": "3.24.6",
 		"pg": "8.23.1",
