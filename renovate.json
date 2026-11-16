@@ -8,6 +8,11 @@
 	"dependencyDashboard": true,
 	"packageRules": [
 		{
+			"description": "engines say which Node and pnpm we run (CI and packageManager decide), so Renovate must not pin or bump them.",
+			"matchDepTypes": ["engines"],
+			"enabled": false
+		},
+		{
 			"description": "Peer ranges stay ranges; only widen them when a new major is out.",
 			"matchDepTypes": ["peerDependencies"],
 			"rangeStrategy": "widen"
