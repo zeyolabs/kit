@@ -46,7 +46,8 @@ function reportToSentry(error: unknown, context?: Record<string, unknown>): void
  *  and only rises during a real incident, which is exactly when more visibility is wanted, not
  *  less. `debug` is for active, temporary investigation only — add a call while chasing a
  *  specific bug, delete it once resolved; it's not a permanent narration/tracing tool, so it gets
- *  no gate either. */
+ *  no gate either. `info` is for rare events worth a permanent trace (an order moved to another
+ *  account), never per-request narration. */
 export class LoggerClient {
 	debug(message: string, context?: Record<string, unknown>): void {
 		console.debug(`[DEBUG] ${message}`, ...(context ? [context] : []));
@@ -55,6 +56,10 @@ export class LoggerClient {
 	error(error: unknown, context?: Record<string, unknown>): void {
 		console.error('[ERROR]', error, { ...errorDetails(error), ...context });
 		reportToSentry(error, context);
+	}
+
+	info(message: string, context?: Record<string, unknown>): void {
+		console.info(`[INFO] ${message}`, ...(context ? [context] : []));
 	}
 
 	warn(message: string, context?: Record<string, unknown>): void {

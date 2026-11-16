@@ -43,7 +43,8 @@ function reportToSentry(error: unknown, context?: Record<string, unknown>): void
 /**
  * `warn`/`error` always fire: both are reserved for genuinely abnormal conditions, so volume stays
  * near zero normally and rises only during a real incident. `debug` is for temporary investigation:
- * add a call while chasing a bug and delete it once resolved.
+ * add a call while chasing a bug and delete it once resolved. `info` is for rare events worth a
+ * permanent trace (an order moved to another account), never per-request narration.
  */
 export class LoggerClient {
 	debug(message: string, context?: Record<string, unknown>): void {
@@ -53,6 +54,10 @@ export class LoggerClient {
 	error(error: unknown, context?: Record<string, unknown>): void {
 		console.error('[ERROR]', error, { ...errorDetails(error), ...context });
 		reportToSentry(error, context);
+	}
+
+	info(message: string, context?: Record<string, unknown>): void {
+		console.info(`[INFO] ${message}`, ...(context ? [context] : []));
 	}
 
 	warn(message: string, context?: Record<string, unknown>): void {
