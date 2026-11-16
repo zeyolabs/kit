@@ -156,7 +156,7 @@
 		"drizzle-orm": "0.45.4",
 		"eslint": "9.39.5",
 		"miniflare": "4.20260730.0",
-		"prettier": "3.9.9",
+		"prettier": "3.10.1",
 		"svelte": "5.57.3",
 		"typescript": "6.0.3",
 		"vitest": "4.1.12",
