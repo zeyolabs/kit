@@ -16,8 +16,8 @@ importers:
         specifier: 2.17.0
         version: 2.17.0
       '@clickhouse/client-web':
-        specifier: 1.24.0
-        version: 1.24.0
+        specifier: 1.25.0
+        version: 1.25.0
       '@clickhouse/rowbinary':
         specifier: 0.1.1
         version: 0.1.1
@@ -210,8 +210,8 @@ packages:
   '@bufbuild/protoplugin@2.17.0':
     resolution: {integrity: sha512-4ExU8AGygKkwIx3U8D5kyBOn9rcCM1qnj4wCP95RbP1CRe73QvVGHQ/lOp6IQiyvQMh9BGrYGht+ZDa8gwC2fg==}
 
-  '@clickhouse/client-web@1.24.0':
-    resolution: {integrity: sha512-s8gPyLOK6wo41UxtKaXXvuqFQoOm/feMfB/n2F3F+LtzJu3mF8ZXpGmeVXgS4b76rorMzRECoKs6Q7jSBp4Gxw==}
+  '@clickhouse/client-web@1.25.0':
+    resolution: {integrity: sha512-9XgfE82bp8yZBMHql2JrcQz3qnNIuyscChkaSeilXcPl14BCJPdBmuV7oY8AOev9K0LNbMGRD+5GNJAZVSlveg==}
 
   '@clickhouse/rowbinary@0.1.1':
     resolution: {integrity: sha512-i5AzBOYiWmdoVtLG1qS/S3HozcO74udV6j2O3aIC/9+2rtsuuik5viEMD0+kS3kZGo93O4Av1wYkn6vxvP2V2Q==}
@@ -2319,7 +2319,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@clickhouse/client-web@1.24.0': {}
+  '@clickhouse/client-web@1.25.0': {}
 
   '@clickhouse/rowbinary@0.1.1': {}
 
