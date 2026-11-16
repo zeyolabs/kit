@@ -107,7 +107,7 @@
 		"eslint-plugin-svelte": "3.24.1",
 		"globals": "17.13.0",
 		"mimetext": "3.0.28",
-		"mysql2": "3.24.5",
+		"mysql2": "3.24.6",
 		"pg": "8.23.1",
 		"snappyjs": "0.7.0",
 		"svelte-eslint-parser": "1.8.1",
