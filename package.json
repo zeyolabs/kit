@@ -111,7 +111,7 @@
 		"pg": "8.23.1",
 		"snappyjs": "0.7.0",
 		"svelte-eslint-parser": "1.8.1",
-		"tldts": "7.4.16",
+		"tldts": "7.4.22",
 		"typescript-eslint": "8.71.0",
 		"worker-mailer": "1.3.1"
 	},
