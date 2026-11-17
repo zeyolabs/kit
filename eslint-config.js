@@ -81,6 +81,17 @@ export function base() {
  * svelte.config.js; source packages (ui) have none and call with no argument.
  * @param {object} [svelteConfig]
  */
+/**
+ * Icons come from `@lucide/svelte`, never a hand-written `<svg>`. An app that sets its own
+ * `svelte/no-restricted-html-elements` (flat config replaces, not merges) adds this entry to its list.
+ * A real drawing (a chart, a progress ring) disables the line with a reason.
+ */
+export const noHandWrittenSvg = {
+	elements: ['svg'],
+	message:
+		'Use an icon from @lucide/svelte instead of a hand-written <svg>. A chart or drawing: disable this line with a reason.',
+};
+
 export function svelteRules(svelteConfig) {
 	return [
 		...svelte.configs.recommended,
@@ -96,6 +107,7 @@ export function svelteRules(svelteConfig) {
 				},
 			},
 			rules: {
+				'svelte/no-restricted-html-elements': ['error', noHandWrittenSvg],
 				'svelte/sort-attributes': 'error',
 			},
 		},
