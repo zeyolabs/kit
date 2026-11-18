@@ -1,7 +1,7 @@
 import { ESLint } from 'eslint';
 import { describe, expect, it } from 'vitest';
 
-import { layerBoundaryRules } from './eslint-config.js';
+import { layerBoundaryRules, svelteRules } from './eslint-config.js';
 
 type Extra = { group: string[]; message?: string }[];
 
@@ -74,5 +74,33 @@ describe('layerBoundaryRules', () => {
 
 	it('leaves other files alone', async () => {
 		expect(await lint('app/page.ts', importOf('./service.server'))).toEqual([]);
+	});
+});
+
+describe('svelteRules', () => {
+	async function restricted(code: string, options?: { uiText?: boolean }) {
+		const eslint = new ESLint({
+			cwd: process.cwd(),
+			overrideConfig: svelteRules(undefined, options),
+			overrideConfigFile: true,
+		});
+		const [result] = await eslint.lintText(code, { filePath: 'Page.svelte' });
+		return (result?.messages ?? [])
+			.filter((m) => m.ruleId === 'svelte/no-restricted-html-elements')
+			.map((m) => m.message);
+	}
+
+	const page = '<h1>Title</h1>\n<p>Body</p>\n<svg></svg>\n';
+
+	it('bans hand-written svg by default but not text tags', async () => {
+		expect(await restricted(page)).toEqual([expect.stringContaining('@lucide/svelte')]);
+	});
+
+	it('bans raw text tags with uiText', async () => {
+		expect(await restricted(page, { uiText: true })).toEqual([
+			'Use <Title level={1}> from @zeyolabs/ui/text instead of <h1>.',
+			'Use <Text> from @zeyolabs/ui/text instead of <p>.',
+			expect.stringContaining('@lucide/svelte'),
+		]);
 	});
 });

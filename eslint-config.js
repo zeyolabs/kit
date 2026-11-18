@@ -77,14 +77,9 @@ export function base() {
 }
 
 /**
- * Svelte parsing + recommended rules. `svelteConfig` is optional: apps pass their own
- * svelte.config.js; source packages (ui) have none and call with no argument.
- * @param {object} [svelteConfig]
- */
-/**
- * Icons come from `@lucide/svelte`, never a hand-written `<svg>`. An app that sets its own
- * `svelte/no-restricted-html-elements` (flat config replaces, not merges) adds this entry to its list.
- * A real drawing (a chart, a progress ring) disables the line with a reason.
+ * Icons come from `@lucide/svelte`, never a hand-written `<svg>`. A real drawing (a chart, a
+ * progress ring) disables the line with a reason. Exported for configs that set their own
+ * `svelte/no-restricted-html-elements` (flat config replaces it, not merges).
  */
 export const noHandWrittenSvg = {
 	elements: ['svg'],
@@ -92,7 +87,34 @@ export const noHandWrittenSvg = {
 		'Use an icon from @lucide/svelte instead of a hand-written <svg>. A chart or drawing: disable this line with a reason.',
 };
 
-export function svelteRules(svelteConfig) {
+const UI_TEXT = {
+	h1: 'Title level={1}',
+	h2: 'Title level={2}',
+	h3: 'Title level={3}',
+	h4: 'Title level={4}',
+	h5: 'Title level={5}',
+	h6: 'Title level={6}',
+	p: 'Text',
+	span: 'Span',
+};
+
+/**
+ * Svelte parser and rules. Apps pass their svelte config; source packages (ui) call it without one.
+ * `uiText: true` (apps on @zeyolabs/ui) also bans raw `h1`-`h6`, `p` and `span`, so text goes
+ * through `Title`/`Text`/`Span` and stays on one type scale.
+ * @param {object} [svelteConfig]
+ * @param {{ uiText?: boolean }} [options]
+ */
+export function svelteRules(svelteConfig, { uiText = false } = {}) {
+	const restricted = [
+		noHandWrittenSvg,
+		...(uiText
+			? Object.entries(UI_TEXT).map(([element, use]) => ({
+					elements: [element],
+					message: `Use <${use}> from @zeyolabs/ui/text instead of <${element}>.`,
+				}))
+			: []),
+	];
 	return [
 		...svelte.configs.recommended,
 		...svelte.configs.prettier,
@@ -107,7 +129,7 @@ export function svelteRules(svelteConfig) {
 				},
 			},
 			rules: {
-				'svelte/no-restricted-html-elements': ['error', noHandWrittenSvg],
+				'svelte/no-restricted-html-elements': ['error', ...restricted],
 				'svelte/sort-attributes': 'error',
 			},
 		},
