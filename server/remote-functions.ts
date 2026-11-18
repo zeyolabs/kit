@@ -9,7 +9,7 @@ import {
 	type RemoteFormInput,
 	type RemoteQueryFunction,
 } from '$app/server';
-import { error, isHttpError, type RequestEvent } from '@sveltejs/kit';
+import { error, isHttpError, isRedirect, type RequestEvent } from '@sveltejs/kit';
 
 import { ServiceError, toHttpError } from '../utils/errors';
 import { FormResult } from '../utils/form';
@@ -33,7 +33,8 @@ import { AppResult } from './result';
  *   (a `Query`/`Cmd` reports it at 400; a `Form` shows it inline);
  * - anything else is unexpected and logged; a `Query`/`Cmd` collapses it to a generic 500 (its
  *   message is never surfaced), a `Form` still returns an inline `FormResult.err(...)` with a
- *   generic message (throwing would break `<Form>`).
+ *   generic message (throwing would break `<Form>`);
+ * - a `redirect()` from a `Form` passes through, so the form navigates.
  */
 
 /** A thrown `Fail` (`AppResult` with `ok: false`) carries a client-safe message: surface it. */
@@ -97,9 +98,9 @@ function remoteForm<S extends z.ZodType, O>(
 		try {
 			return await run(data);
 		} catch (e) {
-			// A ServiceError (expired link, email in use, ...), a soft Fail, or a directly-thrown
-			// HttpError becomes an inline form error; anything else is unexpected but still becomes an
-			// inline error, because throwing here would break `<Form>`.
+			// A redirect is navigation, not a failure. Everything else becomes an inline error: throwing
+			// would break `<Form>`.
+			if (isRedirect(e)) throw e;
 			if (e instanceof ServiceError) return FormResult.err(e.message);
 			if (isFail(e)) return FormResult.err(e.message);
 			if (isHttpError(e)) return FormResult.err(e.body.message);
