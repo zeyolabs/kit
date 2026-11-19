@@ -60,3 +60,28 @@ describe('Remote.Query', () => {
 		});
 	});
 });
+
+describe('isMalformedFormRequest', () => {
+	it("matches SvelteKit's form field errors, in production and dev wording", async () => {
+		const { isMalformedFormRequest } = await import('./remote-functions');
+		expect(isMalformedFormRequest(new Error('https://svelte.dev/e/kit/form_field_unbound'))).toBe(
+			true
+		);
+		expect(
+			isMalformedFormRequest(
+				new Error(
+					'form_field_duplicate\nForm field `name` appeared 2 times\nhttps://svelte.dev/e/kit/form_field_duplicate'
+				)
+			)
+		).toBe(true);
+	});
+
+	it('leaves every other error alone', async () => {
+		const { isMalformedFormRequest } = await import('./remote-functions');
+		expect(
+			isMalformedFormRequest(new Error('https://svelte.dev/e/kit/invalid_redirect_status'))
+		).toBe(false);
+		expect(isMalformedFormRequest(new Error('db down'))).toBe(false);
+		expect(isMalformedFormRequest('form_field_unbound')).toBe(false);
+	});
+});

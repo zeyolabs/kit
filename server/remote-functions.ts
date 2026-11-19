@@ -118,6 +118,17 @@ export const Remote = {
 };
 
 /**
+ * SvelteKit's error for a form body whose fields the form never rendered: a forged or stale
+ * request, not a bug. SvelteKit throws it as a plain `Error`, so `handleError` sees an unknown 500;
+ * answer 400 instead of reporting it.
+ */
+export function isMalformedFormRequest(error: unknown): boolean {
+	return (
+		error instanceof Error && /https:\/\/svelte\.dev\/e\/kit\/form_field_\w+$/.test(error.message)
+	);
+}
+
+/**
  * Logs a remote-function schema validation failure from `handleError` (`kind: 'validation'`).
  * SvelteKit's default names neither the function nor the field, which makes a production failure
  * untraceable; this logs the remote function id plus each issue's field path and message.
