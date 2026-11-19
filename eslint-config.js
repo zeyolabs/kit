@@ -118,7 +118,10 @@ const UI_CLASS_RULES = [
 		TYPOGRAPHY_CLASS,
 		'Set text size, weight and spacing with the Title/Text/Span props from @zeyolabs/ui/text, not classes.'
 	),
-	...classRules(STACK_CLASS, 'Use <Stack> from @zeyolabs/ui/layout for a vertical flex with a gap.'),
+	...classRules(
+		STACK_CLASS,
+		'Use <Stack> from @zeyolabs/ui/layout for a vertical flex with a gap.'
+	),
 	...classRules(ROW_CLASS, 'Use <Cluster> from @zeyolabs/ui/layout for a flex row with a gap.'),
 ];
 
