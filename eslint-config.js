@@ -98,10 +98,35 @@ const UI_TEXT = {
 	span: 'Span',
 };
 
+// Class strings that set text size, weight, tracking or line height, or hand-build a flex stack or
+// row: the ui text components and Stack/Cluster own those, so the scale stays in one place.
+const TYPOGRAPHY_CLASS =
+	'(^|\\s)([a-z0-9]+:)*(text-(xs|sm|base|lg|xl|[2-9]xl)|text-\\[[0-9]|font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)|tracking-|leading-)';
+const STACK_CLASS = '^(?=.*(^|\\s)flex(\\s|$))(?=.*(^|\\s)flex-col(\\s|$))(?=.*(^|\\s)gap-)';
+const ROW_CLASS = '^(?!.*(^|\\s)flex-col(\\s|$))(?=.*(^|\\s)flex(\\s|$))(?=.*(^|\\s)gap-)';
+
+/** `no-restricted-syntax` entries that match a pattern in any static class string. */
+function classRules(pattern, message) {
+	return ['SvelteLiteral', 'Literal'].map((node) => ({
+		message,
+		selector: `SvelteAttribute[key.name='class'] ${node}[value=/${pattern}/]`,
+	}));
+}
+
+const UI_CLASS_RULES = [
+	...classRules(
+		TYPOGRAPHY_CLASS,
+		'Set text size, weight and spacing with the Title/Text/Span props from @zeyolabs/ui/text, not classes.'
+	),
+	...classRules(STACK_CLASS, 'Use <Stack> from @zeyolabs/ui/layout for a vertical flex with a gap.'),
+	...classRules(ROW_CLASS, 'Use <Cluster> from @zeyolabs/ui/layout for a flex row with a gap.'),
+];
+
 /**
  * Svelte parser and rules. Apps pass their svelte config; source packages (ui) call it without one.
  * `uiText: true` (apps on @zeyolabs/ui) also bans raw `h1`-`h6`, `p` and `span`, so text goes
- * through `Title`/`Text`/`Span` and stays on one type scale.
+ * through `Title`/`Text`/`Span` and stays on one type scale, and bans classes that set text size,
+ * weight, tracking or line height or hand-build a flex stack or row (`Stack`/`Cluster` instead).
  * @param {object} [svelteConfig]
  * @param {{ uiText?: boolean }} [options]
  */
@@ -131,6 +156,7 @@ export function svelteRules(svelteConfig, { uiText = false } = {}) {
 			rules: {
 				'svelte/no-restricted-html-elements': ['error', ...restricted],
 				'svelte/sort-attributes': 'error',
+				...(uiText ? { 'no-restricted-syntax': ['error', ...UI_CLASS_RULES] } : {}),
 			},
 		},
 	];

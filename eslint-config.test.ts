@@ -96,6 +96,38 @@ describe('svelteRules', () => {
 		expect(await restricted(page)).toEqual([expect.stringContaining('@lucide/svelte')]);
 	});
 
+	async function classMessages(code: string) {
+		const eslint = new ESLint({
+			cwd: process.cwd(),
+			overrideConfig: svelteRules(undefined, { uiText: true }),
+			overrideConfigFile: true,
+		});
+		const [result] = await eslint.lintText(code, { filePath: 'Page.svelte' });
+		return (result?.messages ?? [])
+			.filter((m) => m.ruleId === 'no-restricted-syntax')
+			.map((m) => `${m.line}: ${m.message.split(' ').slice(0, 2).join(' ')}`);
+	}
+
+	it('bans hand-set text size, weight, tracking and line height with uiText', async () => {
+		const code = [
+			'<a class="text-sm font-semibold">a</a>',
+			"<div class={wide ? 'md:text-lg' : ''}>b</div>",
+			'<div class="leading-tight">c</div>',
+			'<div class="mt-4 text-white">d</div>',
+		].join('\n');
+		expect(await classMessages(code)).toEqual(['1: Set text', '2: Set text', '3: Set text']);
+	});
+
+	it('bans hand-built flex stacks and rows with uiText, not grids', async () => {
+		const code = [
+			'<div class="flex flex-col gap-2">a</div>',
+			'<div class="flex items-center gap-1.5">b</div>',
+			'<div class="grid gap-4">c</div>',
+			'<div class="flex-col">d</div>',
+		].join('\n');
+		expect(await classMessages(code)).toEqual(['1: Use <Stack>', '2: Use <Cluster>']);
+	});
+
 	it('bans raw text tags with uiText', async () => {
 		expect(await restricted(page, { uiText: true })).toEqual([
 			'Use <Title level={1}> from @zeyolabs/ui/text instead of <h1>.',
