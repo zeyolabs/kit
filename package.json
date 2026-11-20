@@ -11,7 +11,7 @@
 		"access": "public",
 		"provenance": true
 	},
-	"packageManager": "pnpm@11.5.0",
+	"packageManager": "pnpm@11.28.13",
 	"engines": {
 		"node": ">=24.0.0",
 		"pnpm": "^11.0.0"
@@ -73,6 +73,7 @@
 		"./monitoring/gates/dev": "./monitoring/gates/dev.ts",
 		"./monitoring/gates/testing": "./monitoring/gates/testing.ts",
 		"./monitoring/logger": "./monitoring/logger/client.ts",
+		"./monitoring/sentry": "./monitoring/sentry.ts",
 		"./monitoring/prometheus": "./monitoring/prometheus/client.ts",
 		"./monitoring/prometheus/dev": "./monitoring/prometheus/dev.ts",
 		"./monitoring/prometheus/metrics": "./monitoring/prometheus/metrics.ts",
@@ -123,7 +124,7 @@
 		"drizzle-orm": "^0.45.3",
 		"eslint": "^9.39.4 || ^10.0.0",
 		"miniflare": "^4.20260730.0",
-		"vitest": "^4.1.11",
+		"vitest": "^4.1.11 || ^5.0.0",
 		"zod": "^4.6.5"
 	},
 	"peerDependenciesMeta": {
@@ -146,7 +147,7 @@
 	"devDependencies": {
 		"@bufbuild/buf": "1.75.0",
 		"@bufbuild/protoc-gen-es": "2.17.0",
-		"@cloudflare/workers-types": "5.20261115.1",
+		"@cloudflare/workers-types": "5.20261119.1",
 		"@electric-sql/pglite": "0.5.16",
 		"@libsql/client": "0.18.0",
 		"@sentry/sveltekit": "11.12.0",
@@ -159,7 +160,7 @@
 		"prettier": "3.10.1",
 		"svelte": "5.57.3",
 		"typescript": "6.0.3",
-		"vitest": "4.1.12",
+		"vitest": "5.1.1",
 		"zod": "4.6.7"
 	}
 }

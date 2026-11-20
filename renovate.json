@@ -5,7 +5,7 @@
 	"schedule": ["before 9am on monday"],
 	"rangeStrategy": "pin",
 	"minimumReleaseAge": "1 day",
-	"dependencyDashboard": true,
+	"dependencyDashboard": { "enabled": true },
 	"packageRules": [
 		{
 			"description": "engines say which Node and pnpm we run (CI and packageManager decide), so Renovate must not pin or bump them.",
@@ -56,6 +56,11 @@
 			"matchPackageNames": ["@zeyolabs/**"],
 			"minimumReleaseAge": null,
 			"schedule": ["at any time"]
+		},
+		{
+			"description": "TypeScript 7 waits until svelte-check, typescript-eslint and @sveltejs/kit accept it (all cap at 6).",
+			"matchPackageNames": ["typescript"],
+			"allowedVersions": "<7"
 		}
 	]
 }
