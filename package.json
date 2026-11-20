@@ -74,7 +74,10 @@
 		"./monitoring/gates/testing": "./monitoring/gates/testing.ts",
 		"./monitoring/logger": "./monitoring/logger/client.ts",
 		"./monitoring/sentry": "./monitoring/sentry.ts",
-		"./monitoring/sentry-vite": "./monitoring/sentry-vite.js",
+		"./monitoring/sentry-vite": {
+			"types": "./monitoring/sentry-vite.d.ts",
+			"default": "./monitoring/sentry-vite.js"
+		},
 		"./monitoring/prometheus": "./monitoring/prometheus/client.ts",
 		"./monitoring/prometheus/dev": "./monitoring/prometheus/dev.ts",
 		"./monitoring/prometheus/metrics": "./monitoring/prometheus/metrics.ts",
