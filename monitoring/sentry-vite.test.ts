@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { SentryVite } from './sentry-vite';
+import { SentryVite } from './sentry-vite.js';
 
 type Resolve = (id: string, importer?: string, options?: { ssr?: boolean }) => unknown;
 

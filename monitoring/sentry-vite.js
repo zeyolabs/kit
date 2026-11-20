@@ -1,5 +1,3 @@
-import type { Plugin } from 'vite';
-
 const OTEL_API = '@opentelemetry/api';
 const SENTRY_OTEL_API = '@sentry/sveltekit/opentelemetry-api';
 const SENTRY_OTEL_API_FILE = /[\\/]opentelemetryApi\.js$/;
@@ -11,8 +9,9 @@ export const SentryVite = {
 	 * `@sentry/sveltekit/opentelemetry-api`, expecting node_modules at runtime. A Worker built by
 	 * adapter-cloudflare 9 has none, so every request fails with "No such module". This resolves the
 	 * import to Sentry's re-export file so it is bundled. List it before `sentrySvelteKit()`.
+	 * @returns {import('vite').Plugin}
 	 */
-	bundleOpenTelemetry(): Plugin {
+	bundleOpenTelemetry() {
 		return {
 			apply: 'build',
 			enforce: 'pre',
