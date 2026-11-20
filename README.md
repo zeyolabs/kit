@@ -96,6 +96,25 @@ Accounts own resources; users reach them through a membership. Resource tables c
 reads the settings from the request context). `DevEmailClient` prints instead of sending and
 `FakeEmailClient` records messages for tests; both work in place of either transport.
 
+## App hooks and Sentry
+
+The setup every app repeats lives here:
+
+```ts
+// hooks.client.ts
+Sentry.init(SentryConfig.options({ dev, dsn: SENTRY_DSN }));
+export const handleError = SentryConfig.clientErrors(Sentry.handleErrorWithSentry());
+
+// hooks.server.ts
+const sentry = SentryConfig.options({ dev, dsn: SENTRY_DSN, release });
+export const handle = sequence(initCloudflareSentryHandle(sentry), sentryHandle(), /* app hooks */, AppHooks.securityHeaders({ private: true }));
+export const handleError = AppHooks.serverErrors(Sentry.handleErrorWithSentry(AppHooks.logError));
+```
+
+`SentryConfig` (`@zeyolabs/kit/monitoring/sentry`) sends nothing from dev or loopback hosts and
+collects no personal data. `AppHooks` (`@zeyolabs/kit/server/hooks`) sets security headers (a
+`private` app is also never cached or indexed) and reports only unexpected errors.
+
 ## Developing against an app
 
 `pnpm link ../kit` in the app while working on both; publish, then pin the new version.

@@ -73,6 +73,7 @@
 		"./monitoring/gates/dev": "./monitoring/gates/dev.ts",
 		"./monitoring/gates/testing": "./monitoring/gates/testing.ts",
 		"./monitoring/logger": "./monitoring/logger/client.ts",
+		"./monitoring/sentry": "./monitoring/sentry.ts",
 		"./monitoring/prometheus": "./monitoring/prometheus/client.ts",
 		"./monitoring/prometheus/dev": "./monitoring/prometheus/dev.ts",
 		"./monitoring/prometheus/metrics": "./monitoring/prometheus/metrics.ts",
