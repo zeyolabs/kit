@@ -2,7 +2,7 @@ import type { RequestEvent } from '@sveltejs/kit';
 
 import { redirect } from '@sveltejs/kit';
 
-import { Turnstile } from '../server/turnstile';
+import { turnstile as turnstileClient } from '../cloudflare/turnstile/client';
 import { Invites } from './accounts/invites';
 import { Auth } from './config';
 import { Login } from './login';
@@ -27,9 +27,7 @@ function loginLoad(event: LoadEvent) {
 		sent: params.has('sent'),
 		token,
 		turnstileSiteKey: turnstile
-			? Turnstile.isLoopback(event.url.hostname)
-				? Turnstile.TEST_SITE_KEY
-				: turnstile.siteKey
+			? turnstileClient(turnstile.secretName).siteKey(event.url.hostname, turnstile.siteKey)
 			: null,
 	};
 }

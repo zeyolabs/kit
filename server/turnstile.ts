@@ -32,8 +32,6 @@ export type TurnstileGateOptions = {
  * Turnstile helpers: a library (an object of static functions, no state, no bindings), like
  * `Schema` and `FormResult`.
  */
-const LOOPBACK = /^(localhost|127\.0\.0\.1|\[::1\])$/;
-
 export const Turnstile = {
 	/**
 	 * Gates a form handler behind Turnstile. The validated input carries `turnstileToken`; the gate
@@ -55,17 +53,6 @@ export const Turnstile = {
 			};
 		};
 	},
-
-	/** A local dev host, where Cloudflare's test keys stand in for the real widget. */
-	isLoopback(hostname: string): boolean {
-		return LOOPBACK.test(hostname);
-	},
-
-	/** Cloudflare's dummy secret: verifies the test widget's tokens only. */
-	TEST_SECRET_KEY: '1x0000000000000000000000000000000AA',
-
-	/** Cloudflare's dummy site key: the widget always passes. */
-	TEST_SITE_KEY: '1x00000000000000000000AA',
 
 	/**
 	 * True only when siteverify accepts the token. An empty token is false without a request, and

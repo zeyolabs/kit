@@ -62,6 +62,7 @@
 		"./cloudflare/r2/testing": "./cloudflare/r2/testing.ts",
 		"./cloudflare/wait-until": "./cloudflare/wait-until.ts",
 		"./cloudflare/workers": "./cloudflare/workers/index.ts",
+		"./cloudflare/turnstile": "./cloudflare/turnstile/client.ts",
 		"./cloudflare/workers-ai": "./cloudflare/workers-ai/client.ts",
 		"./cloudflare/workers-ai/testing": "./cloudflare/workers-ai/testing.ts",
 		"./cloudflare/workers/testing": "./cloudflare/workers/testing.ts",

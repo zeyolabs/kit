@@ -8,13 +8,10 @@ import type { LoginError } from './login';
 import type { AuthUser } from './sessions/sessions';
 
 import { logger } from '../server/logger';
-import { Turnstile } from '../server/turnstile';
-import { envStore } from '../utils/env';
 import { ServiceError } from '../utils/errors';
-import { Schema } from '../utils/schema';
 import { Invites } from './accounts/invites';
 import { Auth } from './config';
-import { AuthEmails } from './emails';
+import { emailLinks, EmailLinkService } from './email-link';
 import { Login } from './login';
 import { users } from './schema';
 import { AuthHandle } from './sessions/handle';
@@ -64,11 +61,8 @@ function toLogin(error: LoginError | null, next: string, sent = false): never {
 }
 
 /** Checks a would-be session user against the allowlist and the Access identity. */
-async function refusal(event: RequestEvent, email: string): Promise<LoginError | null> {
-	if (!(await Auth.config().isAllowed(email))) return 'not_allowed';
-	const { accessEmail } = AuthHandle.locals(event);
-	if (accessEmail && !Users.emailsMatch(accessEmail, email)) return 'mismatch';
-	return null;
+function refusal(event: RequestEvent, email: string): Promise<LoginError | null> {
+	return EmailLinkService.refusal(email, AuthHandle.locals(event).accessEmail);
 }
 
 async function signIn(event: RequestEvent, user: AuthUser): Promise<void> {
@@ -116,39 +110,16 @@ function sessionUser(event: RequestEvent, fresh: boolean): AuthUser | Response {
 async function emailLink(event: RequestEvent): Promise<never> {
 	const form = await event.request.formData();
 	const next = Login.safeNext(form.get('next'));
-	const { turnstile } = Auth.config();
-	if (turnstile) {
-		const token = String(form.get('turnstileToken') ?? '');
-		const secret = Turnstile.isLoopback(event.url.hostname)
-			? Turnstile.TEST_SECRET_KEY
-			: envStore().secret(turnstile.secretName);
-		if (!(await Turnstile.verify(token, event.getClientAddress(), secret))) toLogin('bot', next);
-	}
-	const parsed = Schema.Email.safeParse(form.get('email'));
-	if (!parsed.success) toLogin('send', next);
-	const email = parsed.data;
-
-	const refused = await refusal(event, email);
-	// Unknown emails get the same answer as known ones, so the form can't probe the allowlist.
-	if (refused === 'not_allowed') toLogin(null, next, true);
-	if (refused) toLogin(refused, next);
-
-	const token = await MagicLink.issue(Auth.config().db(), email);
-	if (token) {
-		const url = new URL(Auth.config().loginPath, event.url.origin);
-		url.searchParams.set('token', token);
-		if (next !== '/') url.searchParams.set('next', next);
-		try {
-			const message = { email, expiresInMinutes: MagicLink.TTL_MS / 60_000, url: url.href };
-			await Auth.config()
-				.email()
-				.deliver({ to: email, ...AuthEmails.magicLink(Auth.config().emailBrand, message) });
-		} catch (err) {
-			logger.error(err, { op: 'auth.magic-link.send' });
-			toLogin('send', next);
-		}
-	}
-	toLogin(null, next, true);
+	const { error, sent } = await emailLinks().request({
+		accessEmail: AuthHandle.locals(event).accessEmail,
+		email: form.get('email'),
+		hostname: event.url.hostname,
+		ip: event.getClientAddress(),
+		next,
+		origin: event.url.origin,
+		turnstileToken: String(form.get('turnstileToken') ?? ''),
+	});
+	toLogin(error, next, sent);
 }
 
 async function verifyLink(event: RequestEvent): Promise<never> {
