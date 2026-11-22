@@ -113,6 +113,84 @@ function classRules(pattern, message) {
 	}));
 }
 
+// A `<style>` rule made only of layout that a ui component expresses exactly: a flex column
+// (Stack), a centred flex row (Cluster), or equal / auto-fit columns (Grid). Rules that also set
+// padding, borders, sizes etc. style the element and are left alone, and so are links, buttons,
+// lists, labels and forms, which a layout component would strip of their element.
+const LAYOUT_PROPERTIES = new Set([
+	'align-items',
+	'column-gap',
+	'display',
+	'flex-direction',
+	'flex-wrap',
+	'gap',
+	'grid-template-columns',
+	'justify-content',
+	'row-gap',
+]);
+const KEEP_ELEMENTS = new Set(['a', 'button', 'form', 'label', 'li', 'ol', 'summary', 'ul']);
+
+/** Which component a pure-layout declaration block maps to, or null. */
+function layoutComponent(body) {
+	const decls = new Map();
+	for (const part of body.split(';')) {
+		const i = part.indexOf(':');
+		if (i > 0) decls.set(part.slice(0, i).trim(), part.slice(i + 1).trim());
+	}
+	if ([...decls.keys()].some((k) => !LAYOUT_PROPERTIES.has(k))) return null;
+	const display = decls.get('display');
+	const align = decls.get('align-items');
+	if (display === 'flex' && decls.get('flex-direction') === 'column') {
+		return align === 'baseline' ? null : 'Stack';
+	}
+	if (display === 'flex' && !decls.has('flex-direction')) {
+		return !align || align === 'center' ? 'Cluster' : null;
+	}
+	const columns = decls.get('grid-template-columns');
+	if (display === 'grid' && columns && /^repeat\(\s*(\d+|auto-fit|auto-fill)\s*,/.test(columns)) {
+		return 'Grid';
+	}
+	return null;
+}
+
+/** `zeyolabs/layout-css`: flags hand-written CSS layout on plain elements. */
+const layoutCssRule = {
+	create(context) {
+		const byClass = new Map();
+		const styles = [...context.sourceCode.text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(
+			(m) => m[1]
+		);
+		for (const style of styles) {
+			for (const [, selector, body] of style.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+				const component = layoutComponent(body);
+				if (!component) continue;
+				for (const sel of selector.split(',').map((s) => s.trim())) {
+					const m = /^\.([\w-]+)$/.exec(sel);
+					if (m) byClass.set(m[1], component);
+				}
+			}
+		}
+		if (byClass.size === 0) return {};
+		return {
+			SvelteElement(node) {
+				if (node.kind !== 'html' || KEEP_ELEMENTS.has(node.name.name)) return;
+				const cls = node.startTag.attributes.find(
+					(a) => a.type === 'SvelteAttribute' && a.key.name === 'class'
+				);
+				const text = cls?.value?.map((v) => (v.type === 'SvelteLiteral' ? v.value : '')).join(' ');
+				const hit = text?.split(/\s+/).find((c) => byClass.has(c));
+				if (!hit) return;
+				const component = byClass.get(hit);
+				context.report({
+					message: `.${hit} is only layout: use <${component}> from @zeyolabs/ui/layout instead of CSS.`,
+					node: node.startTag,
+				});
+			},
+		};
+	},
+	meta: { schema: [], type: 'suggestion' },
+};
+
 const UI_CLASS_RULES = [
 	...classRules(
 		TYPOGRAPHY_CLASS,
@@ -156,10 +234,16 @@ export function svelteRules(svelteConfig, { uiText = false } = {}) {
 					...(svelteConfig ? { svelteConfig } : {}),
 				},
 			},
+			plugins: { zeyolabs: { rules: { 'layout-css': layoutCssRule } } },
 			rules: {
 				'svelte/no-restricted-html-elements': ['error', ...restricted],
 				'svelte/sort-attributes': 'error',
-				...(uiText ? { 'no-restricted-syntax': ['error', ...UI_CLASS_RULES] } : {}),
+				...(uiText
+					? {
+							'no-restricted-syntax': ['error', ...UI_CLASS_RULES],
+							'zeyolabs/layout-css': 'error',
+						}
+					: {}),
 			},
 		},
 	];

@@ -128,6 +128,42 @@ describe('svelteRules', () => {
 		expect(await classMessages(code)).toEqual(['1: Use <Stack>', '2: Use <Cluster>']);
 	});
 
+	async function layoutMessages(code: string, uiText = true) {
+		const eslint = new ESLint({
+			cwd: process.cwd(),
+			overrideConfig: svelteRules(undefined, { uiText }),
+			overrideConfigFile: true,
+		});
+		const [result] = await eslint.lintText(code, { filePath: 'Page.svelte' });
+		return (result?.messages ?? [])
+			.filter((m) => m.ruleId === 'zeyolabs/layout-css')
+			.map((m) => `${m.line}: ${m.message.split(':')[0]}`);
+	}
+
+	it('flags <style> rules that are only Stack, Cluster or Grid layout, on plain elements', async () => {
+		const code = [
+			'<div class="col">a</div>',
+			'<div class="row x">b</div>',
+			'<section class="cards">c</section>',
+			'<div class="box">d</div>',
+			'<ul class="col">e</ul>',
+			'<div class="base">f</div>',
+			'<style>',
+			'	.col { display: flex; flex-direction: column; gap: 8px; }',
+			'	.row { display: flex; align-items: center; gap: 6px; }',
+			'	.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }',
+			'	.box { display: flex; flex-direction: column; gap: 8px; padding: 10px; }',
+			'	.base { display: flex; align-items: baseline; }',
+			'</style>',
+		].join('\n');
+		expect(await layoutMessages(code)).toEqual([
+			'1: .col is only layout',
+			'2: .row is only layout',
+			'3: .cards is only layout',
+		]);
+		expect(await layoutMessages(code, false)).toEqual([]);
+	});
+
 	it('bans raw text tags with uiText', async () => {
 		expect(await restricted(page, { uiText: true })).toEqual([
 			'Use <Title level={1}> from @zeyolabs/ui/text instead of <h1>.',
