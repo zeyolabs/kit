@@ -78,10 +78,10 @@ describe('layerBoundaryRules', () => {
 });
 
 describe('svelteRules', () => {
-	async function restricted(code: string, options?: { uiText?: boolean }) {
+	async function restricted(code: string) {
 		const eslint = new ESLint({
 			cwd: process.cwd(),
-			overrideConfig: svelteRules(undefined, options),
+			overrideConfig: svelteRules(undefined),
 			overrideConfigFile: true,
 		});
 		const [result] = await eslint.lintText(code, { filePath: 'Page.svelte' });
@@ -92,14 +92,10 @@ describe('svelteRules', () => {
 
 	const page = '<h1>Title</h1>\n<p>Body</p>\n<svg></svg>\n';
 
-	it('bans hand-written svg by default but not text tags', async () => {
-		expect(await restricted(page)).toEqual([expect.stringContaining('@lucide/svelte')]);
-	});
-
 	async function classMessages(code: string) {
 		const eslint = new ESLint({
 			cwd: process.cwd(),
-			overrideConfig: svelteRules(undefined, { uiText: true }),
+			overrideConfig: svelteRules(undefined),
 			overrideConfigFile: true,
 		});
 		const [result] = await eslint.lintText(code, { filePath: 'Page.svelte' });
@@ -108,7 +104,7 @@ describe('svelteRules', () => {
 			.map((m) => `${m.line}: ${m.message.split(' ').slice(0, 2).join(' ')}`);
 	}
 
-	it('bans hand-set text size, weight, tracking and line height with uiText', async () => {
+	it('bans hand-set text size, weight, tracking and line height ', async () => {
 		const code = [
 			'<a class="text-sm font-semibold">a</a>',
 			"<div class={wide ? 'md:text-lg' : ''}>b</div>",
@@ -118,7 +114,7 @@ describe('svelteRules', () => {
 		expect(await classMessages(code)).toEqual(['1: Set text', '2: Set text', '3: Set text']);
 	});
 
-	it('bans hand-built flex stacks and rows with uiText, not grids', async () => {
+	it('bans hand-built flex stacks and rows , not grids', async () => {
 		const code = [
 			'<div class="flex flex-col gap-2">a</div>',
 			'<div class="flex items-center gap-1.5">b</div>',
@@ -128,10 +124,10 @@ describe('svelteRules', () => {
 		expect(await classMessages(code)).toEqual(['1: Use <Stack>', '2: Use <Cluster>']);
 	});
 
-	async function layoutMessages(code: string, uiText = true) {
+	async function layoutMessages(code: string) {
 		const eslint = new ESLint({
 			cwd: process.cwd(),
-			overrideConfig: svelteRules(undefined, { uiText }),
+			overrideConfig: svelteRules(undefined),
 			overrideConfigFile: true,
 		});
 		const [result] = await eslint.lintText(code, { filePath: 'Page.svelte' });
@@ -161,11 +157,10 @@ describe('svelteRules', () => {
 			'2: .row is only layout',
 			'3: .cards is only layout',
 		]);
-		expect(await layoutMessages(code, false)).toEqual([]);
 	});
 
-	it('bans raw text tags with uiText', async () => {
-		expect(await restricted(page, { uiText: true })).toEqual([
+	it('bans raw text tags and hand-written svg', async () => {
+		expect(await restricted(page)).toEqual([
 			'Use <Title level={1}> from @zeyolabs/ui/text instead of <h1>.',
 			'Use <Text> from @zeyolabs/ui/text instead of <p>.',
 			expect.stringContaining('@lucide/svelte'),
