@@ -7,6 +7,7 @@ describe('AppVite.config', () => {
 		const config = AppVite.config({
 			packages: ['kit', 'shopping', 'ui'],
 			port: 5174,
+			sentryOrg: 'org',
 			sentryProject: 'shop',
 		});
 		expect(config.server).toEqual({ port: 5174, strictPort: true });
@@ -33,7 +34,7 @@ describe('AppVite.config', () => {
 
 	it('leaves out the test block when asked', () => {
 		expect(
-			AppVite.config({ port: 5190, sentryProject: 'banking', test: false }).test
+			AppVite.config({ port: 5190, sentryOrg: 'org', sentryProject: 'banking', test: false }).test
 		).toBeUndefined();
 	});
 });

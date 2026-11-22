@@ -7,7 +7,9 @@ export type AppViteOptions = {
 	packages?: string[];
 	/** Dev server port (strict). */
 	port: number;
-	/** Sentry project slug in the `zeyo` org. */
+	/** Sentry organisation slug. */
+	sentryOrg: string;
+	/** Sentry project slug. */
 	sentryProject: string;
 	/** Vitest picks up `src/**\/*.test.ts`. Default true. */
 	test?: boolean;
@@ -17,5 +19,5 @@ export type AppViteOptions = {
 
 export declare const AppVite: {
 	config(options: AppViteOptions): UserConfig & { test?: { include: string[] } };
-	csp(options: Pick<AppViteOptions, 'csp' | 'turnstile'>): Record<string, string[]>;
+	csp(options: { csp?: Record<string, string[]>; turnstile?: boolean }): Record<string, string[]>;
 };

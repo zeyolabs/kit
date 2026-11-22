@@ -204,22 +204,20 @@ const UI_CLASS_RULES = [
 ];
 
 /**
- * Svelte parser and rules. Apps pass their svelte config; source packages (ui) call it without one.
- * `uiText: true` (apps on @zeyolabs/ui) also bans raw `h1`-`h6`, `p` and `span`, so text goes
- * through `Title`/`Text`/`Span` and stays on one type scale, and bans classes that set text size,
- * weight, tracking or line height or hand-build a flex stack or row (`Stack`/`Cluster` instead).
+ * Svelte parser and rules. Apps pass their svelte config; source packages call it without one.
+ * Text goes through `Title`/`Text`/`Span` (raw `h1`-`h6`, `p` and `span` are banned, and so are
+ * classes that set text size, weight, tracking or line height) and layout through
+ * `Stack`/`Cluster`/`Grid` (hand-built flex rows and stacks, in classes or `<style>`, are banned).
+ * `@zeyolabs/ui`, which builds those components, turns the three rules off in its own config.
  * @param {object} [svelteConfig]
- * @param {{ uiText?: boolean }} [options]
  */
-export function svelteRules(svelteConfig, { uiText = false } = {}) {
+export function svelteRules(svelteConfig) {
 	const restricted = [
 		noHandWrittenSvg,
-		...(uiText
-			? Object.entries(UI_TEXT).map(([element, use]) => ({
-					elements: [element],
-					message: `Use <${use}> from @zeyolabs/ui/text instead of <${element}>.`,
-				}))
-			: []),
+		...Object.entries(UI_TEXT).map(([element, use]) => ({
+			elements: [element],
+			message: `Use <${use}> from @zeyolabs/ui/text instead of <${element}>.`,
+		})),
 	];
 	return [
 		...svelte.configs.recommended,
@@ -236,14 +234,10 @@ export function svelteRules(svelteConfig, { uiText = false } = {}) {
 			},
 			plugins: { zeyolabs: { rules: { 'layout-css': layoutCssRule } } },
 			rules: {
+				'no-restricted-syntax': ['error', ...UI_CLASS_RULES],
 				'svelte/no-restricted-html-elements': ['error', ...restricted],
 				'svelte/sort-attributes': 'error',
-				...(uiText
-					? {
-							'no-restricted-syntax': ['error', ...UI_CLASS_RULES],
-							'zeyolabs/layout-css': 'error',
-						}
-					: {}),
+				'zeyolabs/layout-css': 'error',
 			},
 		},
 	];

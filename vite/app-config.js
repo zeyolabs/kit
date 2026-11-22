@@ -33,6 +33,7 @@ export const AppVite = {
 		csp = {},
 		packages = ['kit', 'ui'],
 		port,
+		sentryOrg,
 		sentryProject,
 		test = true,
 		turnstile = false,
@@ -54,7 +55,7 @@ export const AppVite = {
 					authToken: process.env.SENTRY_AUTH_TOKEN,
 					// Build-time instrumentation breaks some Workers runtime code paths.
 					buildTimeInstrumentation: false,
-					org: 'zeyo',
+					org: sentryOrg,
 					project: sentryProject,
 					// Only the public client maps: the Worker's go to Cloudflare with the deploy.
 					sourcemaps: {
