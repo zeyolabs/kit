@@ -70,7 +70,8 @@ export const AppVite = {
 					adapter: adapter({
 						platformProxy: {
 							configPath: 'wrangler.jsonc',
-							persist: { path: '../../.wrangler/state/v3' },
+							// Tests start this proxy too; parallel test runs would lock one shared local database.
+							persist: process.env.VITEST ? false : { path: '../../.wrangler/state/v3' },
 						},
 					}),
 					compilerOptions: { experimental: { async: true } },
