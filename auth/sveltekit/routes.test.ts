@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthDb } from '../config';
 
 import { FakeEmailClient } from '../../cloudflare/email/testing';
+import { EnvStore } from '../../utils/env';
 import { TestAuthenticator } from '../__fixtures__/authenticator';
 import { createTestDb } from '../__fixtures__/db';
 import { Accounts } from '../accounts/accounts';
@@ -129,7 +130,7 @@ describe('magic link flow', () => {
 });
 
 describe('turnstile on the email form', () => {
-	beforeEach(() => {
+	beforeEach(async () => {
 		Auth.configure({
 			accounts: CATALOGUE,
 			appName: 'Example',
@@ -137,8 +138,10 @@ describe('turnstile on the email form', () => {
 			email: () => mail,
 			emailBrand: BRAND,
 			isAllowed: (email) => email.endsWith('@example.com'),
-			turnstile: { secret: 'secret-key', siteKey: 'site-key' },
+			turnstile: { secretName: 'TURNSTILE_SECRET_KEY', siteKey: 'site-key' },
 		});
+		EnvStore.resetForTests();
+		await EnvStore.resolve({ TURNSTILE_SECRET_KEY: 'secret-key' }, new Set());
 	});
 
 	function siteverify(success: boolean) {

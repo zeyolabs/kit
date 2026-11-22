@@ -9,6 +9,7 @@ import type { LoginError } from './login';
 
 import { logger } from '../../server/logger';
 import { Turnstile } from '../../server/turnstile';
+import { envStore } from '../../utils/env';
 import { ServiceError } from '../../utils/errors';
 import { Schema } from '../../utils/schema';
 import { Invites } from '../accounts/invites';
@@ -118,8 +119,10 @@ async function emailLink(event: RequestEvent): Promise<never> {
 	const { turnstile } = Auth.config();
 	if (turnstile) {
 		const token = String(form.get('turnstileToken') ?? '');
-		const ip = event.getClientAddress();
-		if (!(await Turnstile.verify(token, ip, turnstile.secret))) toLogin('bot', next);
+		const secret = Turnstile.isLoopback(event.url.hostname)
+			? Turnstile.TEST_SECRET_KEY
+			: envStore().secret(turnstile.secretName);
+		if (!(await Turnstile.verify(token, event.getClientAddress(), secret))) toLogin('bot', next);
 	}
 	const parsed = Schema.Email.safeParse(form.get('email'));
 	if (!parsed.success) toLogin('send', next);

@@ -2,6 +2,7 @@ import type { RequestEvent } from '@sveltejs/kit';
 
 import { redirect } from '@sveltejs/kit';
 
+import { Turnstile } from '../../server/turnstile';
 import { Invites } from '../accounts/invites';
 import { Auth } from '../config';
 import { AuthHandle } from '../sessions/handle';
@@ -18,13 +19,18 @@ function loginLoad(event: LoadEvent) {
 	const next = Login.safeNext(params.get('next') ?? '/');
 	const token = params.get('token');
 	if (user && !token) redirect(303, next);
+	const { turnstile } = Auth.config();
 	return {
 		accessEmail,
 		error: Login.errorMessage(params.get('error')),
 		next,
 		sent: params.has('sent'),
 		token,
-		turnstileSiteKey: Auth.config().turnstile?.siteKey ?? null,
+		turnstileSiteKey: turnstile
+			? Turnstile.isLoopback(event.url.hostname)
+				? Turnstile.TEST_SITE_KEY
+				: turnstile.siteKey
+			: null,
 	};
 }
 
