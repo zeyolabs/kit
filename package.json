@@ -24,6 +24,7 @@
 		"server",
 		"storage",
 		"utils",
+		"vite",
 		"!**/*.test.ts",
 		"!**/*.test-d.ts",
 		"!**/*.integration.test.ts",
@@ -78,6 +79,10 @@
 			"types": "./monitoring/sentry-vite.d.ts",
 			"default": "./monitoring/sentry-vite.js"
 		},
+		"./vite/app-config": {
+			"types": "./vite/app-config.d.ts",
+			"default": "./vite/app-config.js"
+		},
 		"./monitoring/prometheus": "./monitoring/prometheus/client.ts",
 		"./monitoring/prometheus/dev": "./monitoring/prometheus/dev.ts",
 		"./monitoring/prometheus/metrics": "./monitoring/prometheus/metrics.ts",
@@ -124,7 +129,10 @@
 		"@cloudflare/workers-types": "*",
 		"@electric-sql/pglite": "^0.5.8",
 		"@sentry/sveltekit": "^11.4.0",
+		"@sveltejs/adapter-cloudflare": "^9.0.0",
 		"@sveltejs/kit": "^3.1.1",
+		"@sveltejs/vite-plugin-svelte": "^7.0.0",
+		"@tailwindcss/vite": "^4.0.0",
 		"drizzle-orm": "^0.45.3",
 		"eslint": "^9.39.4 || ^10.0.0",
 		"miniflare": "^4.20260730.0",
@@ -137,6 +145,15 @@
 			"optional": true
 		},
 		"@electric-sql/pglite": {
+			"optional": true
+		},
+		"@sveltejs/adapter-cloudflare": {
+			"optional": true
+		},
+		"@sveltejs/vite-plugin-svelte": {
+			"optional": true
+		},
+		"@tailwindcss/vite": {
 			"optional": true
 		},
 		"eslint": {
@@ -159,7 +176,10 @@
 		"@electric-sql/pglite": "0.5.16",
 		"@libsql/client": "0.18.0",
 		"@sentry/sveltekit": "11.12.0",
+		"@sveltejs/adapter-cloudflare": "9.0.0",
 		"@sveltejs/kit": "3.2.0",
+		"@sveltejs/vite-plugin-svelte": "7.3.1",
+		"@tailwindcss/vite": "4.3.5",
 		"@types/pg": "8.23.1",
 		"@types/snappyjs": "0.7.1",
 		"drizzle-orm": "0.45.4",
