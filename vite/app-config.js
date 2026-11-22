@@ -34,7 +34,7 @@ export const AppVite = {
 		csp = {},
 		packages = ['kit', 'ui'],
 		port,
-		sentryOrg = 'zeyo',
+		sentryOrg,
 		sentryProject,
 		test = true,
 		turnstile = false,

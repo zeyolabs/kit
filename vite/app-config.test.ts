@@ -7,6 +7,7 @@ describe('AppVite.config', () => {
 		const config = AppVite.config({
 			packages: ['kit', 'shopping', 'ui'],
 			port: 5174,
+			sentryOrg: 'org',
 			sentryProject: 'shop',
 		});
 		expect(config.server).toEqual({ port: 5174, strictPort: true });
@@ -40,12 +41,14 @@ describe('AppVite.config', () => {
 			sentryProject: 'site',
 		});
 		expect(config.cacheDir).toBe('.cache/.vite');
-		expect(AppVite.config({ port: 1, sentryProject: 'a' }).cacheDir).toBeUndefined();
+		expect(
+			AppVite.config({ port: 1, sentryOrg: 'org', sentryProject: 'a' }).cacheDir
+		).toBeUndefined();
 	});
 
 	it('leaves out the test block when asked', () => {
 		expect(
-			AppVite.config({ port: 5190, sentryProject: 'banking', test: false }).test
+			AppVite.config({ port: 5190, sentryOrg: 'org', sentryProject: 'banking', test: false }).test
 		).toBeUndefined();
 	});
 });

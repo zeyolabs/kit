@@ -9,8 +9,8 @@ export type AppViteOptions = {
 	packages?: string[];
 	/** Dev server port (strict). */
 	port: number;
-	/** Sentry organisation slug. Default `zeyo`. */
-	sentryOrg?: string;
+	/** Sentry organisation slug. */
+	sentryOrg: string;
 	/** Sentry project slug. */
 	sentryProject: string;
 	/** Vitest picks up `src/**\/*.test.ts`. Default true. */
