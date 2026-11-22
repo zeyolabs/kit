@@ -30,7 +30,6 @@ const BASE_CSP = {
 export const AppVite = {
 	/** @param {import('./app-config').AppViteOptions} options */
 	config({
-		cacheDir,
 		csp = {},
 		packages = ['kit', 'ui'],
 		port,
@@ -39,10 +38,9 @@ export const AppVite = {
 		test = true,
 		turnstile = false,
 	}) {
-		const directives = csp === false ? null : AppVite.csp({ csp, turnstile });
+		const directives = AppVite.csp({ csp, turnstile });
 
 		return {
-			...(cacheDir ? { cacheDir } : {}),
 			build: {
 				rollupOptions: {
 					external: ['cloudflare:sockets', 'cloudflare:email', 'cloudflare:workers'],
@@ -79,7 +77,7 @@ export const AppVite = {
 					}),
 					compilerOptions: { experimental: { async: true } },
 					// `mode: 'auto'` adds nonces (SSR) / hashes (prerendered) to SvelteKit's inline scripts.
-					...(directives ? { csp: { directives, mode: 'auto' } } : {}),
+					csp: { directives, mode: 'auto' },
 					experimental: { remoteFunctions: true },
 					preprocess: vitePreprocess(),
 					version: { pollInterval: 300_000 },

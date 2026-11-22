@@ -1,10 +1,8 @@
 import type { UserConfig } from 'vite';
 
 export type AppViteOptions = {
-	/** Vite's cache directory, if not the default. */
-	cacheDir?: string;
 	/** Extra CSP sources per directive, added to the shared base (e.g. `'img-src': ['https://images.example.com']`). */
-	csp?: false | Record<string, string[]>;
+	csp?: Record<string, string[]>;
 	/** `@zeyolabs/*` packages the app uses, kept out of Vite's pre-bundler. Default `['kit', 'ui']`. */
 	packages?: string[];
 	/** Dev server port (strict). */
