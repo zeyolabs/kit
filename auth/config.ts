@@ -63,6 +63,14 @@ export type AuthConfig = {
 	 *  (e.g. `example.com` for `app.example.com`) to share passkeys across its subdomains; it can't
 	 *  change later without orphaning every passkey. */
 	passkeyRpId?: string;
+	/** Cloudflare Turnstile on the "email me a link" form: the login page renders the widget with
+	 *  `siteKey` and `/auth/email` refuses a request whose token `secret` does not verify, before
+	 *  any lookup or email. Passkey sign-in needs none (the browser's authenticator is the check). */
+	turnstile?: {
+		/** The secret key: a string, or a function called per check (a Secrets Store binding). */
+		secret: (() => Promise<string> | string) | string;
+		siteKey: string;
+	};
 };
 
 export type ResolvedAuthConfig = AuthConfig & {

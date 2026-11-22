@@ -66,6 +66,7 @@ function event(
 			get: (name: string) => jar.get(name),
 			set: (name: string, value: string) => void jar.set(name, value),
 		},
+		getClientAddress: () => '203.0.113.7',
 		locals: {},
 		params: { path: url.pathname.replace(/^\/auth\//, '') },
 		request: new Request(url, { body, headers, method }),
@@ -124,6 +125,53 @@ describe('magic link flow', () => {
 			event('/auth/email', { form: { email: 'ada@example.com' }, origin: 'https://evil.com' })
 		);
 		expect((response as Response).status).toBe(403);
+	});
+});
+
+describe('turnstile on the email form', () => {
+	beforeEach(() => {
+		Auth.configure({
+			accounts: CATALOGUE,
+			appName: 'Example',
+			db: () => db,
+			email: () => mail,
+			emailBrand: BRAND,
+			isAllowed: (email) => email.endsWith('@example.com'),
+			turnstile: { secret: 'secret-key', siteKey: 'site-key' },
+		});
+	});
+
+	function siteverify(success: boolean) {
+		return vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ success }));
+	}
+
+	it('sends the link only when the token verifies', async () => {
+		const fetch = siteverify(true);
+		const location = await call(
+			event('/auth/email', { form: { email: 'ada@example.com', turnstileToken: 'tok' } })
+		);
+		expect(location).toBe('/login?sent=1');
+		expect(mail.sent).toHaveLength(1);
+		const body = fetch.mock.calls[0]![1]!.body as URLSearchParams;
+		expect(Object.fromEntries(body)).toEqual({
+			remoteip: '203.0.113.7',
+			response: 'tok',
+			secret: 'secret-key',
+		});
+		fetch.mockRestore();
+	});
+
+	it('refuses a missing or rejected token before any lookup or email', async () => {
+		const fetch = siteverify(false);
+		expect(await call(event('/auth/email', { form: { email: 'ada@example.com' } }))).toBe(
+			'/login?error=bot'
+		);
+		expect(fetch).not.toHaveBeenCalled();
+		expect(
+			await call(event('/auth/email', { form: { email: 'ada@example.com', turnstileToken: 'x' } }))
+		).toBe('/login?error=bot');
+		expect(mail.sent).toHaveLength(0);
+		fetch.mockRestore();
 	});
 });
 

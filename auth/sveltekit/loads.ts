@@ -24,6 +24,7 @@ function loginLoad(event: LoadEvent) {
 		next,
 		sent: params.has('sent'),
 		token,
+		turnstileSiteKey: Auth.config().turnstile?.siteKey ?? null,
 	};
 }
 

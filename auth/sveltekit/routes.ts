@@ -8,6 +8,7 @@ import type { AuthUser } from '../sessions/sessions';
 import type { LoginError } from './login';
 
 import { logger } from '../../server/logger';
+import { Turnstile } from '../../server/turnstile';
 import { ServiceError } from '../../utils/errors';
 import { Schema } from '../../utils/schema';
 import { Invites } from '../accounts/invites';
@@ -114,6 +115,12 @@ function sessionUser(event: RequestEvent, fresh: boolean): AuthUser | Response {
 async function emailLink(event: RequestEvent): Promise<never> {
 	const form = await event.request.formData();
 	const next = Login.safeNext(form.get('next'));
+	const { turnstile } = Auth.config();
+	if (turnstile) {
+		const token = String(form.get('turnstileToken') ?? '');
+		const ip = event.getClientAddress();
+		if (!(await Turnstile.verify(token, ip, turnstile.secret))) toLogin('bot', next);
+	}
 	const parsed = Schema.Email.safeParse(form.get('email'));
 	if (!parsed.success) toLogin('send', next);
 	const email = parsed.data;
