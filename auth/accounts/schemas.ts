@@ -12,11 +12,18 @@ const InviteSchema = z.object({
 
 const PolicySchema = z.object({
 	key: z.string().min(1).max(40),
-	name: z.string().trim().min(1).max(60),
+	name: Schema.Text.max(60),
 	permissions: z.array(z.string().max(80)).max(200),
+});
+
+/** The policy editor's form: unticking every permission sends none, so they default to `[]`. */
+const PolicyFormSchema = PolicySchema.extend({
+	key: z.string().trim().min(1, 'enter a key').max(40),
+	permissions: PolicySchema.shape.permissions.default([]),
 });
 
 export const AccountSchemas = {
 	Invite: InviteSchema,
 	Policy: PolicySchema,
+	PolicyForm: PolicyFormSchema,
 };
