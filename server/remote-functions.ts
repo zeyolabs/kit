@@ -31,9 +31,10 @@ import { AppResult } from './result';
  *   is a deliberate, client-facing failure: it keeps its status and is not reported;
  * - a thrown `Fail` (`AppResult` with `ok: false`, a soft business failure) surfaces its message
  *   (a `Query`/`Cmd` reports it at 400; a `Form` shows it inline);
- * - anything else is unexpected and logged; a `Query`/`Cmd` collapses it to a generic 500 (its
- *   message is never surfaced), a `Form` still returns an inline `FormResult.err(...)` with a
- *   generic message (throwing would break `<Form>`);
+ * - anything else is unexpected: a `Query`/`Cmd` rethrows the original error, so SvelteKit answers
+ *   a generic 500 (its message is never surfaced) and `handleError` reports it once, with its real
+ *   stack; a `Form` logs it and returns an inline `FormResult.err(...)` with a generic message
+ *   (throwing would break `<Form>`);
  * - a `redirect()` from a `Form` passes through, so the form navigates.
  */
 
@@ -42,12 +43,16 @@ function isFail(e: unknown): e is AppResult {
 	return e instanceof AppResult && !e.ok;
 }
 
-/** Map a thrown value to a SvelteKit HttpError: Fail at 400, ServiceError/HttpError keep their status, else 500. */
+/**
+ * Map a thrown value to the Query/Cmd error channel: a Fail becomes a 400, a ServiceError or
+ * HttpError keeps its status. Anything else is rethrown untouched: wrapping it in `error(500)` would
+ * drop its stack and have Sentry report it again at every layer it passes.
+ */
 function throwAsHttp(e: unknown): never {
 	if (isFail(e)) throw error(HttpStatus.BadRequest, e.message ?? 'Request failed');
 	if (isHttpError(e)) throw e;
 	const { expected, message, status } = toHttpError(e);
-	if (!expected) logger.error(e, { op: 'remote' });
+	if (!expected) throw e;
 	throw error(status, message);
 }
 

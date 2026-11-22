@@ -54,10 +54,9 @@ describe('Remote.Query', () => {
 		});
 	});
 
-	it('collapses unexpected errors to a 500', async () => {
-		await expect(query(() => Promise.reject(new Error('db down')))()).rejects.toMatchObject({
-			status: 500,
-		});
+	it('rethrows unexpected errors as they are, for handleError to report once', async () => {
+		const failure = new Error('db down');
+		await expect(query(() => Promise.reject(failure))()).rejects.toBe(failure);
 	});
 });
 
