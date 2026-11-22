@@ -4,33 +4,33 @@ import { json, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import type { AuthUser } from '../sessions/sessions';
 import type { LoginError } from './login';
+import type { AuthUser } from './sessions/sessions';
 
-import { logger } from '../../server/logger';
-import { Turnstile } from '../../server/turnstile';
-import { envStore } from '../../utils/env';
-import { ServiceError } from '../../utils/errors';
-import { Schema } from '../../utils/schema';
-import { Invites } from '../accounts/invites';
-import { Auth } from '../config';
-import { AuthEmails } from '../emails';
-import { users } from '../schema';
-import { AuthHandle } from '../sessions/handle';
-import { MagicLink } from '../sessions/magic-link/magic-link';
+import { logger } from '../server/logger';
+import { Turnstile } from '../server/turnstile';
+import { envStore } from '../utils/env';
+import { ServiceError } from '../utils/errors';
+import { Schema } from '../utils/schema';
+import { Invites } from './accounts/invites';
+import { Auth } from './config';
+import { AuthEmails } from './emails';
+import { Login } from './login';
+import { users } from './schema';
+import { AuthHandle } from './sessions/handle';
+import { MagicLink } from './sessions/magic-link/magic-link';
 import {
 	AuthenticationResponse,
 	PasskeyError,
 	RegistrationResponse,
 	type RelyingParty,
-} from '../sessions/passkeys/passkeys';
-import { Passkeys } from '../sessions/passkeys/passkeys';
-import { Sessions } from '../sessions/sessions';
-import { Users } from '../users';
-import { Login } from './login';
+} from './sessions/passkeys/passkeys';
+import { Passkeys } from './sessions/passkeys/passkeys';
+import { Sessions } from './sessions/sessions';
+import { Users } from './users';
 
 // The auth endpoints, mounted by the app with one file:
-//   src/routes/auth/[...path]/+server.ts:  export { POST } from '@zeyolabs/kit/auth/sveltekit/routes';
+//   src/routes/auth/[...path]/+server.ts:  export { POST } from '@zeyolabs/kit/auth/routes';
 //
 //   POST /auth/email                  form {email, next}  -> emails a link, 303 login?sent=1
 //   POST /auth/verify                 form {token, next}  -> uses the link, signs in, 303 next

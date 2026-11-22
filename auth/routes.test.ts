@@ -3,20 +3,20 @@ import type { RequestEvent } from '@sveltejs/kit';
 import { isRedirect } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { AuthDb } from '../config';
+import type { AuthDb } from './config';
 
-import { FakeEmailClient } from '../../cloudflare/email/testing';
-import { EnvStore } from '../../utils/env';
-import { TestAuthenticator } from '../__fixtures__/authenticator';
-import { createTestDb } from '../__fixtures__/db';
-import { Accounts } from '../accounts/accounts';
-import { Invites } from '../accounts/invites';
-import { Auth } from '../config';
-import { AuthHandle } from '../sessions/handle';
-import { Sessions } from '../sessions/sessions';
-import { Users } from '../users';
+import { FakeEmailClient } from '../cloudflare/email/testing';
+import { EnvStore } from '../utils/env';
+import { TestAuthenticator } from './__fixtures__/authenticator';
+import { createTestDb } from './__fixtures__/db';
+import { Accounts } from './accounts/accounts';
+import { Invites } from './accounts/invites';
+import { Auth } from './config';
 import { Login } from './login';
 import { POST } from './routes';
+import { AuthHandle } from './sessions/handle';
+import { Sessions } from './sessions/sessions';
+import { Users } from './users';
 
 const ORIGIN = 'https://app.example.com';
 const CATALOGUE = { memberPermissions: [], permissions: [] };

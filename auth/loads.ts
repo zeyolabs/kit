@@ -2,16 +2,16 @@ import type { RequestEvent } from '@sveltejs/kit';
 
 import { redirect } from '@sveltejs/kit';
 
-import { Turnstile } from '../../server/turnstile';
-import { Invites } from '../accounts/invites';
-import { Auth } from '../config';
-import { AuthHandle } from '../sessions/handle';
-import { Passkeys } from '../sessions/passkeys/passkeys';
+import { Turnstile } from '../server/turnstile';
+import { Invites } from './accounts/invites';
+import { Auth } from './config';
 import { Login } from './login';
+import { AuthHandle } from './sessions/handle';
+import { Passkeys } from './sessions/passkeys/passkeys';
 
 type LoadEvent = Pick<RequestEvent, 'locals' | 'url'>;
 
-/** The login page's server load: `export { loginLoad as load } from '@zeyolabs/kit/auth/sveltekit/loads'`.
+/** The login page's server load: `export { loginLoad as load } from '@zeyolabs/kit/auth/loads'`.
  *  A signed-in visitor goes straight on to `next`, unless they arrived with a link token. */
 function loginLoad(event: LoadEvent) {
 	const { accessEmail, user } = AuthHandle.locals(event as RequestEvent);
