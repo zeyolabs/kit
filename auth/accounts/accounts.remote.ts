@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { Remote } from '../../server/remote-functions';
 import { FormResult } from '../../utils/form';
+import { Schema } from '../../utils/schema';
 import { Auth } from '../config';
 import { AuthEmails } from '../emails';
 import { AuthHandle } from '../sessions/handle';
@@ -74,7 +75,7 @@ export const revokeInviteCmd = Remote.Cmd(z.object({ email: z.string() }), async
 });
 
 export const setMemberPolicyCmd = Remote.Cmd(
-	z.object({ policy: z.string().min(1).max(40), userId: z.number().int() }),
+	z.object({ policy: z.string().min(1).max(40), userId: Schema.Id }),
 	async ({ policy, userId }) => {
 		const { membership } = AccountHandle.require(getRequestEvent());
 		await Accounts.setMemberPolicy(
@@ -88,18 +89,24 @@ export const setMemberPolicyCmd = Remote.Cmd(
 	}
 );
 
-export const removeMemberCmd = Remote.Cmd(
-	z.object({ userId: z.number().int() }),
-	async ({ userId }) => {
-		await Accounts.removeMember(
-			Auth.config().db(),
-			AccountHandle.require(getRequestEvent()).membership,
-			userId
-		);
-		void getAccountMembers().refresh();
-	}
-);
+export const removeMemberCmd = Remote.Cmd(z.object({ userId: Schema.Id }), async ({ userId }) => {
+	await Accounts.removeMember(
+		Auth.config().db(),
+		AccountHandle.require(getRequestEvent()).membership,
+		userId
+	);
+	void getAccountMembers().refresh();
+});
 
+/** Creates or edits one of the account's own policies (the policy editor's form). */
+export const savePolicyForm = Remote.Form(AccountSchemas.PolicyForm, async (input) => {
+	const { membership } = AccountHandle.require(getRequestEvent());
+	await Accounts.savePolicy(Auth.config().db(), Auth.config().accounts, membership, input);
+	void getAccountMembers().refresh();
+	return FormResult.ok(`Saved ${input.name}`);
+});
+
+/** @deprecated Use `savePolicyForm`; kept until `@zeyolabs/ui`'s policy editor has moved to it. */
 export const savePolicyCmd = Remote.Cmd(AccountSchemas.Policy, async (input) => {
 	const { membership } = AccountHandle.require(getRequestEvent());
 	await Accounts.savePolicy(Auth.config().db(), Auth.config().accounts, membership, input);
