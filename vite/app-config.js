@@ -30,16 +30,19 @@ const BASE_CSP = {
 export const AppVite = {
 	/** @param {import('./app-config').AppViteOptions} options */
 	config({
+		cacheDir,
 		csp = {},
 		packages = ['kit', 'ui'],
 		port,
+		sentryOrg = 'zeyo',
 		sentryProject,
 		test = true,
 		turnstile = false,
 	}) {
-		const directives = AppVite.csp({ csp, turnstile });
+		const directives = csp === false ? null : AppVite.csp({ csp, turnstile });
 
 		return {
+			...(cacheDir ? { cacheDir } : {}),
 			build: {
 				rollupOptions: {
 					external: ['cloudflare:sockets', 'cloudflare:email', 'cloudflare:workers'],
@@ -54,7 +57,7 @@ export const AppVite = {
 					authToken: process.env.SENTRY_AUTH_TOKEN,
 					// Build-time instrumentation breaks some Workers runtime code paths.
 					buildTimeInstrumentation: false,
-					org: 'zeyo',
+					org: sentryOrg,
 					project: sentryProject,
 					// Only the public client maps: the Worker's go to Cloudflare with the deploy.
 					sourcemaps: {
@@ -76,7 +79,7 @@ export const AppVite = {
 					}),
 					compilerOptions: { experimental: { async: true } },
 					// `mode: 'auto'` adds nonces (SSR) / hashes (prerendered) to SvelteKit's inline scripts.
-					csp: { directives, mode: 'auto' },
+					...(directives ? { csp: { directives, mode: 'auto' } } : {}),
 					experimental: { remoteFunctions: true },
 					preprocess: vitePreprocess(),
 					version: { pollInterval: 300_000 },

@@ -31,6 +31,18 @@ describe('AppVite.config', () => {
 		expect(AppVite.csp({})['frame-src']).toBeUndefined();
 	});
 
+	it('takes another Sentry org and cache dir, and can leave the CSP out', () => {
+		const config = AppVite.config({
+			cacheDir: '.cache/.vite',
+			csp: false,
+			port: 5173,
+			sentryOrg: 'other',
+			sentryProject: 'site',
+		});
+		expect(config.cacheDir).toBe('.cache/.vite');
+		expect(AppVite.config({ port: 1, sentryProject: 'a' }).cacheDir).toBeUndefined();
+	});
+
 	it('leaves out the test block when asked', () => {
 		expect(
 			AppVite.config({ port: 5190, sentryProject: 'banking', test: false }).test
