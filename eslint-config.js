@@ -226,7 +226,6 @@ export function svelteRules(svelteConfig, { uiText = false } = {}) {
 		...svelte.configs.prettier,
 		{
 			files: ['**/*.svelte', '**/*.svelte.ts'],
-			plugins: { zeyolabs: { rules: { 'layout-css': layoutCssRule } } },
 			languageOptions: {
 				parser: svelteParser,
 				parserOptions: {
@@ -235,6 +234,7 @@ export function svelteRules(svelteConfig, { uiText = false } = {}) {
 					...(svelteConfig ? { svelteConfig } : {}),
 				},
 			},
+			plugins: { zeyolabs: { rules: { 'layout-css': layoutCssRule } } },
 			rules: {
 				'svelte/no-restricted-html-elements': ['error', ...restricted],
 				'svelte/sort-attributes': 'error',
