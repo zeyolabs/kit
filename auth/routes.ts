@@ -7,11 +7,13 @@ import { z } from 'zod';
 import type { LoginError } from './login';
 import type { AuthUser } from './sessions/sessions';
 
+import { TurnstileClient } from '../cloudflare/turnstile/client';
 import { logger } from '../server/logger';
+import { envStore } from '../utils/env';
 import { ServiceError } from '../utils/errors';
 import { Invites } from './accounts/invites';
 import { Auth } from './config';
-import { emailLinks, EmailLinkService } from './email-link';
+import { EmailLinkService } from './email-link';
 import { Login } from './login';
 import { users } from './schema';
 import { AuthHandle } from './sessions/handle';
@@ -110,7 +112,12 @@ function sessionUser(event: RequestEvent, fresh: boolean): AuthUser | Response {
 async function emailLink(event: RequestEvent): Promise<never> {
 	const form = await event.request.formData();
 	const next = Login.safeNext(form.get('next'));
-	const { error, sent } = await emailLinks().request({
+	const { turnstile } = Auth.config();
+	const service = new EmailLinkService(
+		Auth.config().db(),
+		turnstile ? new TurnstileClient(envStore(), turnstile.secretName) : null
+	);
+	const { error, sent } = await service.request({
 		accessEmail: AuthHandle.locals(event).accessEmail,
 		email: form.get('email'),
 		hostname: event.url.hostname,

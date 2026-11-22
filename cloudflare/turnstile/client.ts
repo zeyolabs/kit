@@ -1,5 +1,6 @@
+import type { EnvStore } from '../../utils/env';
+
 import { verifyTurnstile } from '../../server/turnstile';
-import { envStore, type EnvStore } from '../../utils/env';
 
 /** Cloudflare's dummy secret: verifies the test widget's tokens only. */
 const TEST_SECRET_KEY = '1x0000000000000000000000000000000AA';
@@ -44,9 +45,4 @@ export class TurnstileClient implements ITurnstileClient {
 		const secret = LOOPBACK.test(hostname) ? TEST_SECRET_KEY : this.env.secret(this.secretName);
 		return verifyTurnstile(token, ip, secret);
 	}
-}
-
-/** Built fresh per call: the client holds no state beyond the secret's name. */
-export function turnstile(secretName: string): TurnstileClient {
-	return new TurnstileClient(envStore(), secretName);
 }

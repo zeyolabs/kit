@@ -2,7 +2,6 @@ import type { ITurnstileClient } from '../cloudflare/turnstile/client';
 import type { AuthDb } from './config';
 import type { LoginError } from './login';
 
-import { turnstile } from '../cloudflare/turnstile/client';
 import { logger } from '../server/logger';
 import { Schema } from '../utils/schema';
 import { Auth } from './config';
@@ -79,10 +78,4 @@ export class EmailLinkService {
 		}
 		return { error: null, sent: true };
 	}
-}
-
-/** Built fresh per request from the app's auth config. */
-export function emailLinks(): EmailLinkService {
-	const { db, turnstile: widget } = Auth.config();
-	return new EmailLinkService(db(), widget ? turnstile(widget.secretName) : null);
 }
