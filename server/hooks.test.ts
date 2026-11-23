@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('$app/server', () => ({ command: vi.fn(), form: vi.fn(), query: vi.fn() }));
 vi.mock('./logger', () => ({ logger: { error: vi.fn() } }));
@@ -66,5 +66,88 @@ describe('AppHooks.securityHeaders', () => {
 		const immutable = Response.redirect('https://app.test/', 302);
 		const out = await run(true, immutable);
 		expect(out.headers.get('X-Content-Type-Options')).toBe('nosniff');
+	});
+});
+
+describe('AppHooks.pageCache', () => {
+	const store = new Map<string, Response>();
+	const cache = {
+		match: vi.fn((key: Request) => Promise.resolve(store.get(key.url)?.clone())),
+		put: vi.fn((key: Request, response: Response) => {
+			store.set(key.url, response.clone());
+			return Promise.resolve();
+		}),
+	};
+	const rules = [
+		{ exact: '/', seconds: 60 },
+		{ prefix: '/category/', seconds: 120 },
+	];
+	const page = () =>
+		new Response('<html></html>', { headers: { 'content-type': 'text/html; charset=utf-8' } });
+
+	function run(path: string, init: { cookie?: string; method?: string } = {}) {
+		const request = new Request(`https://shop.test${path}`, {
+			headers: init.cookie ? { cookie: init.cookie } : {},
+			method: init.method ?? 'GET',
+		});
+		const resolve = vi.fn(() => Promise.resolve(page()));
+		const event = { request, url: new URL(request.url) };
+		return {
+			resolve,
+			response: AppHooks.pageCache(rules)({ event, resolve } as unknown as HandleInput),
+		};
+	}
+
+	beforeEach(() => {
+		store.clear();
+		cache.match.mockClear();
+		cache.put.mockClear();
+		vi.stubGlobal('caches', { default: cache });
+	});
+	afterEach(() => vi.unstubAllGlobals());
+
+	it('renders once, then serves the stored copy', async () => {
+		const first = run('/');
+		expect((await first.response).headers.get('X-Page-Cache')).toBe('MISS');
+		expect(first.resolve).toHaveBeenCalledOnce();
+		expect(cache.put.mock.calls[0][1].headers.get('Cache-Control')).toBe('public, max-age=60');
+
+		const second = run('/');
+		const response = await second.response;
+		expect(response.headers.get('X-Page-Cache')).toBe('HIT');
+		expect(await response.text()).toBe('<html></html>');
+		expect(second.resolve).not.toHaveBeenCalled();
+	});
+
+	it('uses the rule that matches, by prefix, and leaves other paths alone', async () => {
+		await run('/category/keycaps').response;
+		expect(cache.put.mock.calls[0][1].headers.get('Cache-Control')).toBe('public, max-age=120');
+		const other = run('/basket');
+		await other.response;
+		expect(cache.match).toHaveBeenCalledTimes(1);
+		expect(other.resolve).toHaveBeenCalledOnce();
+	});
+
+	it('never caches a request with cookies, a non-GET, or a response that sets a cookie', async () => {
+		await run('/', { cookie: 'session=abc' }).response;
+		await run('/', { method: 'POST' }).response;
+		const setsCookie = AppHooks.pageCache(rules)({
+			event: { request: new Request('https://shop.test/'), url: new URL('https://shop.test/') },
+			resolve: () =>
+				Promise.resolve(
+					new Response('x', { headers: { 'content-type': 'text/html', 'set-cookie': 'a=b' } })
+				),
+		} as unknown as HandleInput);
+		await setsCookie;
+		expect(cache.put).not.toHaveBeenCalled();
+	});
+
+	it('does not store errors or non-page responses', async () => {
+		const json = AppHooks.pageCache(rules)({
+			event: { request: new Request('https://shop.test/'), url: new URL('https://shop.test/') },
+			resolve: () => Promise.resolve(Response.json({ a: 1 })),
+		} as unknown as HandleInput);
+		await json;
+		expect(cache.put).not.toHaveBeenCalled();
 	});
 });
