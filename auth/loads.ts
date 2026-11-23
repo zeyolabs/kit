@@ -29,9 +29,8 @@ function loginLoad(event: LoadEvent) {
 		sent: params.has('sent'),
 		token,
 		turnstileSiteKey: turnstile
-			? new TurnstileClient(envStore(), turnstile.secretName).siteKey(
-					event.url.hostname,
-					turnstile.siteKey
+			? new TurnstileClient(envStore(), turnstile.secretName, turnstile.siteKeyName).siteKey(
+					event.url.hostname
 				)
 			: null,
 	};

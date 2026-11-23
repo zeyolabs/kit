@@ -67,9 +67,10 @@ export type AuthConfig = {
 	 *  `/auth/email` refuses a token that does not verify, before any lookup or email. On loopback
 	 *  hosts Cloudflare's test keys stand in, so local dev needs no real widget. */
 	turnstile?: {
-		/** The env secret holding the widget's secret key, read with `envStore().secret()`. */
+		/** The env secret holding the widget's secret key. */
 		secretName: string;
-		siteKey: string;
+		/** The env var holding the widget's public site key. */
+		siteKeyName: string;
 	};
 };
 
