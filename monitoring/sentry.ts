@@ -18,15 +18,20 @@ export type SentryOptionsInput = {
 	release?: string;
 	/** Tags every event, for a project shared by several workers. */
 	service?: string;
+	/** Client only: SvelteKit's `updated` from `$app/state`. An error from a tab left open across
+	 *  a deploy is then dropped, and the check flips `updated.current`, which shows
+	 *  `@zeyolabs/ui`'s `UpdateOverlay`. */
+	updated?: DeployVersion;
 };
 
 // Loopback only, never `*.workers.dev`: `wrangler dev` serves a production build, so the host is
 // the only sign an event came from a local run.
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(:\d+)?$/;
 const SECRET_HEADER = /^(authorization|cf-access-jwt-assertion|cookie|set-cookie)$/i;
-// A tab from an older deploy asking for a chunk or stylesheet that no longer exists.
+// A tab from an older deploy asking for a chunk, stylesheet or route that no longer exists. A bare
+// `Failed to fetch` is SvelteKit's own navigation or remote-function fetch failing the same way.
 const STALE_CHUNK =
-	/Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Unable to preload CSS/;
+	/^Failed to fetch\b|Importing a module script failed|error loading dynamically imported module|Unable to preload CSS/;
 
 /** SvelteKit's `updated` from `$app/state`. */
 export type DeployVersion = { check(): Promise<boolean>; readonly current: boolean };
@@ -83,26 +88,39 @@ const dataCollection = {
  */
 export const SentryConfig = {
 	/** A client `handleError` that reports only unexpected errors: SvelteKit 3 also sends expected
-	 *  ones (a 404 page, `error(404)` from a query) through it. With `updated`, an error from a tab
-	 *  left open across a deploy is not reported: the check flips `updated.current`, which shows
-	 *  `@zeyolabs/ui`'s `UpdateOverlay`. */
-	clientErrors(report: HandleClientError, updated?: DeployVersion): HandleClientError {
-		return async (input) => {
+	 *  ones (a 404 page, `error(404)` from a query) through it. */
+	clientErrors(report: HandleClientError): HandleClientError {
+		return (input) => {
 			if (input.kind !== 'unknown' && input.error.status < 500) return;
-			if (updated && (updated.current || (await updated.check().catch(() => false)))) return;
 			return report(input);
 		};
 	},
 
-	options({ dev, dsn, release, service }: SentryOptionsInput) {
-		const beforeSend = <T extends ExceptionEvent & ScrubbableEvent>(event: T): null | T => {
-			if (isLocal(event.request?.url) || isStaleChunk(event)) return null;
+	options({ dev, dsn, release, service, updated }: SentryOptionsInput) {
+		const beforeSendTransaction = <T extends ScrubbableEvent>(event: T): null | T => {
+			if (isLocal(event.request?.url)) return null;
 			if (service) event.tags = { ...event.tags, service };
 			return scrub(event);
 		};
+		// Every error passes here, also those Sentry catches itself (unhandled rejections) that
+		// never reach `handleError`.
+		const beforeSend = <T extends ExceptionEvent & ScrubbableEvent>(
+			event: T
+		): null | Promise<null | T> | T => {
+			if (!updated) return beforeSendTransaction(event);
+			if (updated.current) return null;
+			if (isStaleChunk(event)) {
+				void updated.check().catch(() => false);
+				return null;
+			}
+			return updated
+				.check()
+				.catch(() => false)
+				.then((newer) => (newer ? null : beforeSendTransaction(event)));
+		};
 		return {
 			beforeSend,
-			beforeSendTransaction: beforeSend,
+			beforeSendTransaction,
 			dataCollection,
 			dsn,
 			enabled: !dev && Boolean(dsn),
