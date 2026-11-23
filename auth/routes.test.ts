@@ -3,19 +3,18 @@ import type { RequestEvent } from '@sveltejs/kit';
 import { isRedirect } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { AuthDb } from '../config';
+import type { AuthDb } from './config';
 
-import { FakeEmailClient } from '../../cloudflare/email/testing';
-import { TestAuthenticator } from '../__fixtures__/authenticator';
-import { createTestDb } from '../__fixtures__/db';
-import { Accounts } from '../accounts/accounts';
-import { Invites } from '../accounts/invites';
-import { Auth } from '../config';
-import { AuthHandle } from '../sessions/handle';
-import { Sessions } from '../sessions/sessions';
-import { Users } from '../users';
+import { FakeEmailClient } from '../cloudflare/email/testing';
+import { EnvStore } from '../utils/env';
+import { TestAuthenticator } from './__fixtures__/authenticator';
+import { createTestDb } from './__fixtures__/db';
+import { AccountService } from './accounts/accounts';
+import { Auth } from './config';
 import { Login } from './login';
 import { POST } from './routes';
+import { AuthHandle } from './sessions/handle';
+import { SignInService } from './sign-in';
 
 const ORIGIN = 'https://app.example.com';
 const CATALOGUE = { memberPermissions: [], permissions: [] };
@@ -30,11 +29,15 @@ const sentLink = (i = 0) =>
 	new URL(/https:\/\/\S+?token=[0-9a-f]+[^\s"]*/.exec(mail.sent[i].text!)![0]);
 
 let db: AuthDb;
+let accounts: AccountService;
+let signIn: SignInService;
 let mail: FakeEmailClient;
 let jar: Map<string, string>;
 
 beforeEach(async () => {
 	db = await createTestDb();
+	accounts = new AccountService(db, CATALOGUE);
+	signIn = new SignInService(db);
 	mail = new FakeEmailClient();
 	jar = new Map();
 	Auth.configure({
@@ -66,6 +69,7 @@ function event(
 			get: (name: string) => jar.get(name),
 			set: (name: string, value: string) => void jar.set(name, value),
 		},
+		getClientAddress: () => '203.0.113.7',
 		locals: {},
 		params: { path: url.pathname.replace(/^\/auth\//, '') },
 		request: new Request(url, { body, headers, method }),
@@ -127,6 +131,55 @@ describe('magic link flow', () => {
 	});
 });
 
+describe('turnstile on the email form', () => {
+	beforeEach(async () => {
+		Auth.configure({
+			accounts: CATALOGUE,
+			appName: 'Example',
+			db: () => db,
+			email: () => mail,
+			emailBrand: BRAND,
+			isAllowed: (email) => email.endsWith('@example.com'),
+			turnstile: { secretName: 'TURNSTILE_SECRET_KEY', siteKey: 'site-key' },
+		});
+		EnvStore.resetForTests();
+		await EnvStore.resolve({ TURNSTILE_SECRET_KEY: 'secret-key' }, new Set());
+	});
+
+	function siteverify(success: boolean) {
+		return vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ success }));
+	}
+
+	it('sends the link only when the token verifies', async () => {
+		const fetch = siteverify(true);
+		const location = await call(
+			event('/auth/email', { form: { email: 'ada@example.com', turnstileToken: 'tok' } })
+		);
+		expect(location).toBe('/login?sent=1');
+		expect(mail.sent).toHaveLength(1);
+		const body = fetch.mock.calls[0]![1]!.body as URLSearchParams;
+		expect(Object.fromEntries(body)).toEqual({
+			remoteip: '203.0.113.7',
+			response: 'tok',
+			secret: 'secret-key',
+		});
+		fetch.mockRestore();
+	});
+
+	it('refuses a missing or rejected token before any lookup or email', async () => {
+		const fetch = siteverify(false);
+		expect(await call(event('/auth/email', { form: { email: 'ada@example.com' } }))).toBe(
+			'/login?error=bot'
+		);
+		expect(fetch).not.toHaveBeenCalled();
+		expect(
+			await call(event('/auth/email', { form: { email: 'ada@example.com', turnstileToken: 'x' } }))
+		).toBe('/login?error=bot');
+		expect(mail.sent).toHaveLength(0);
+		fetch.mockRestore();
+	});
+});
+
 describe('the handle', () => {
 	it('redirects pages to login with next, and 401s API calls', async () => {
 		const handle = AuthHandle.create();
@@ -143,8 +196,8 @@ describe('the handle', () => {
 	});
 
 	it('signs out a user who is no longer allowed', async () => {
-		const user = await Users.findOrCreate(db, 'ada@example.com');
-		jar.set('session', (await Sessions.create(db, user.id)).token);
+		const user = await signIn.findOrCreateUser('ada@example.com');
+		jar.set('session', (await signIn.createSession(user.id)).token);
 		const resolve = vi.fn(async () => new Response('ok'));
 		await AuthHandle.create()({ event: event('/'), resolve });
 		expect(resolve).toHaveBeenCalledOnce();
@@ -166,8 +219,8 @@ describe('the handle', () => {
 
 describe('passkey flow', () => {
 	async function signedIn(ageMs = 0) {
-		const user = await Users.findOrCreate(db, 'ada@example.com');
-		jar.set('session', (await Sessions.create(db, user.id, Date.now() - ageMs)).token);
+		const user = await signIn.findOrCreateUser('ada@example.com');
+		jar.set('session', (await signIn.createSession(user.id, Date.now() - ageMs)).token);
 	}
 
 	async function json(e: RequestEvent) {
@@ -211,10 +264,10 @@ describe('passkey flow', () => {
 
 describe('invite flow', () => {
 	it('sends a signed-out invitee to log in, then joins them to the account', async () => {
-		const owner = await Users.findOrCreate(db, 'ada@example.com');
-		const account = await Accounts.create(db, { name: 'Acme', slug: 'acme' }, owner.id);
-		const ownerMembership = await Accounts.resolveMembership(db, CATALOGUE, account.id, owner.id);
-		const token = await Invites.create(db, CATALOGUE, ownerMembership!, {
+		const owner = await signIn.findOrCreateUser('ada@example.com');
+		const account = await accounts.create({ name: 'Acme', slug: 'acme' }, owner.id);
+		const ownerMembership = await accounts.resolveMembership(account.id, owner.id);
+		const token = await accounts.createInvite(ownerMembership!, {
 			email: 'carol@example.com',
 			policy: 'member',
 		});
@@ -222,12 +275,10 @@ describe('invite flow', () => {
 		const signedOut = await call(event('/auth/invite/accept', { form: { token } }));
 		expect(signedOut).toBe(`/login?next=${encodeURIComponent(`/invite?token=${token}`)}`);
 
-		const carol = await Users.findOrCreate(db, 'carol@example.com');
-		jar.set('session', (await Sessions.create(db, carol.id)).token);
+		const carol = await signIn.findOrCreateUser('carol@example.com');
+		jar.set('session', (await signIn.createSession(carol.id)).token);
 		expect(await call(event('/auth/invite/accept', { form: { token } }))).toBe('/acme');
-		expect(
-			(await Accounts.resolveMembership(db, CATALOGUE, account.id, carol.id))?.policy.key
-		).toBe('member');
+		expect((await accounts.resolveMembership(account.id, carol.id))?.policy.key).toBe('member');
 
 		// Used up: a second accept goes back to the invite page with the error.
 		expect(await call(event('/auth/invite/accept', { form: { token } }))).toMatch(/error=404$/);

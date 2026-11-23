@@ -2,15 +2,18 @@ import type { RequestEvent } from '@sveltejs/kit';
 
 import { redirect } from '@sveltejs/kit';
 
-import { Invites } from '../accounts/invites';
-import { Auth } from '../config';
-import { AuthHandle } from '../sessions/handle';
-import { Passkeys } from '../sessions/passkeys/passkeys';
+import { TurnstileClient } from '../cloudflare/turnstile/client';
+import { envStore } from '../utils/env';
+import { AccountService } from './accounts/accounts';
+import { Auth } from './config';
 import { Login } from './login';
+import { AuthHandle } from './sessions/handle';
+import { Passkeys } from './sessions/passkeys/passkeys';
+import { SignInService } from './sign-in';
 
 type LoadEvent = Pick<RequestEvent, 'locals' | 'url'>;
 
-/** The login page's server load: `export { loginLoad as load } from '@zeyolabs/kit/auth/sveltekit/loads'`.
+/** The login page's server load: `export { loginLoad as load } from '@zeyolabs/kit/auth/loads'`.
  *  A signed-in visitor goes straight on to `next`, unless they arrived with a link token. */
 function loginLoad(event: LoadEvent) {
 	const { accessEmail, user } = AuthHandle.locals(event as RequestEvent);
@@ -18,12 +21,19 @@ function loginLoad(event: LoadEvent) {
 	const next = Login.safeNext(params.get('next') ?? '/');
 	const token = params.get('token');
 	if (user && !token) redirect(303, next);
+	const { turnstile } = Auth.config();
 	return {
 		accessEmail,
 		error: Login.errorMessage(params.get('error')),
 		next,
 		sent: params.has('sent'),
 		token,
+		turnstileSiteKey: turnstile
+			? new TurnstileClient(envStore(), turnstile.secretName).siteKey(
+					event.url.hostname,
+					turnstile.siteKey
+				)
+			: null,
 	};
 }
 
@@ -34,7 +44,7 @@ async function passkeysLoad(event: LoadEvent) {
 	if (!session || !user) redirect(303, Auth.config().loginPath);
 	return {
 		fresh: Date.now() - session.createdAt <= Passkeys.FRESH_SESSION_MS,
-		passkeys: await Passkeys.list(Auth.config().db(), user.id),
+		passkeys: await new SignInService(Auth.config().db()).listPasskeys(user.id),
 	};
 }
 
@@ -43,7 +53,8 @@ async function passkeysLoad(event: LoadEvent) {
 async function inviteLoad(event: LoadEvent) {
 	const { user } = AuthHandle.locals(event as RequestEvent);
 	const token = event.url.searchParams.get('token') ?? '';
-	const invite = await Invites.find(Auth.config().db(), token);
+	const { accounts, db } = Auth.config();
+	const invite = await new AccountService(db(), accounts).findInvite(token);
 	return {
 		error: event.url.searchParams.get('error'),
 		invite: invite && { accountName: invite.account.name, email: invite.email },

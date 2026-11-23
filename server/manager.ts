@@ -1,6 +1,6 @@
 import type { Membership } from '../auth/accounts/accounts';
 
-import { Accounts } from '../auth/accounts/accounts';
+import { Permissions } from '../auth/accounts/permissions';
 import { Error403 } from '../utils/errors';
 
 // The manager gate. A manager is permission check, then a service call, then events. Each edge (a
@@ -9,7 +9,7 @@ import { Error403 } from '../utils/errors';
 
 /** Throws a 403 unless `membership` grants `permission`. A missing membership fails closed. */
 export function requirePermission(membership: Membership | null, permission: string): Membership {
-	if (!membership || !Accounts.can(membership, permission)) {
+	if (!membership || !Permissions.can(membership, permission)) {
 		throw Error403('You do not have permission to do that');
 	}
 	return membership;

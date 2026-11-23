@@ -29,14 +29,16 @@ Publishing uses npm trusted publishing: the package's npmjs.com settings trust t
 
 ## Auth (`@zeyolabs/kit/auth/*`)
 
-`config`, `schema`, `users`, `emails` at the top; one folder per part: `sessions/` (cookie
-sessions, the auth handle, and the two ways in: `sessions/magic-link/` and `sessions/passkeys/`
-with its browser `client`),
-`accounts/` (accounts, invites, permissions, the account handle, remote functions), `sveltekit/`
-(the `/auth/*` routes, page loads, login helpers). Each file exports one library object, like
-`Crypto`: `Sessions`, `MagicLink`, `Passkeys`, `PasskeyClient`, `Users`, `Allowlist`, `Accounts`,
-`Invites`, `Permissions`, `AuthHandle`, `AccountHandle`, `AuthLoads`, `AuthEmails`, `Login`, and
-`Auth.configure` for the config.
+Everything in `auth/` is one of the four layers (see `CLAUDE.md`):
+
+- **Services** (take the db, build with `new X(db)`): `SignInService` (`sign-in`: sessions, emailed
+  links, passkey credentials, users, and the email-link form with its optional bot check) and
+  `AccountService` (`accounts/accounts`: accounts, members, policies and invites).
+- **Clients:** `TurnstileClient` (`@zeyolabs/kit/cloudflare/turnstile`); `PasskeyClient` in the browser.
+- **Managers:** `SignInManager` (`sign-in-manager`) runs one `/auth/*` request: cookies, redirects and
+  the passkey ceremonies. `routes` is only its dispatch table; `loads` has the login, passkey and invite page loads.
+- **Libraries** (static functions): `Passkeys` (the WebAuthn checks), `Allowlist`, `Permissions`,
+  `AuthEmails`, `Login`, `AuthHandle` and `AccountHandle` (the hooks), and `Auth.configure` for the config.
 
 Passwordless sign-in: an emailed magic link or a passkey. No passwords anywhere. Sessions are
 `<id>.<secret>` cookies (sha256 at rest, 30 days, sliding); magic links are single-use and expire
@@ -57,8 +59,8 @@ in 15 minutes; passkeys are verified server-side (ES256/RS256, user verification
 3. Hook, after the context handle: `AuthHandle.create({ access })` (pass `access` to also require
    a matching Cloudflare Access JWT). Type `App.Locals` as `interface Locals extends AuthLocals`.
 4. Routes: `src/routes/auth/[...path]/+server.ts` is
-   `export { POST } from '@zeyolabs/kit/auth/sveltekit/routes';`, and the login page's `+page.server.ts` is
-   `export const load = AuthLoads.login;` (from `@zeyolabs/kit/auth/sveltekit/loads`).
+   `export { POST } from '@zeyolabs/kit/auth/routes';`, and the login page's `+page.server.ts` is
+   `export const load = AuthLoads.login;` (from `@zeyolabs/kit/auth/loads`).
 5. The login page (the app's own markup) posts `email` to `/auth/email`; with `?token=` it shows a
    button posting `token` to `/auth/verify` (so mail scanners can't use the link); its passkey
    button calls `PasskeyClient.signIn()` from `@zeyolabs/kit/auth/sessions/passkeys/client`. A settings page
@@ -77,12 +79,12 @@ Accounts own resources; users reach them through a membership. Resource tables c
   and an account always keeps at least one owner.
 - **Which account.** `AccountHandle.create({ slug: AccountHandle.slugFromRoute('account') })` after the auth handle
   sets `locals.account` and `locals.membership` (404 for non-members). Remote functions call
-  `AccountHandle.requirePermission(event, 'projects.edit')`, or `Accounts.can(membership, key)`.
-- **Invite only.** `isAllowed: (email) => Accounts.hasAccess(db, email)`; invites are emailed links
+  `AccountHandle.requirePermission(event, 'projects.edit')`, or `Permissions.can(membership, key)`.
+- **Invite only.** `isAllowed: (email) => new AccountService(db, catalogue).hasAccess(email)`; invites are emailed links
   to the app's `/invite` page (`AuthLoads.invite`), accepted by posting to `/auth/invite/accept`.
   For the usual admin setup pass `owners: { account: { name, slug }, emails: () => env().ALLOWED_EMAILS }`
   instead: those emails may always sign in and become owners of the account (created on first use, via
-  `Accounts.ensureOwner`), and members and invitees may sign in too; `isAllowed` then becomes optional.
+  `AccountService.ensureOwner`), and members and invitees may sign in too; `isAllowed` then becomes optional.
   `onSignIn` still runs after it. Removing an email from the list does not revoke someone who has
   already signed in: remove them from the account's members too.
 - **Management.** `@zeyolabs/kit/auth/accounts/accounts.remote` has the queries and commands a members page

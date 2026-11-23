@@ -8,7 +8,8 @@ import type { AccountSummary, Membership } from './accounts';
 import { Error403, Error404 } from '../../utils/errors';
 import { Auth } from '../config';
 import { AuthHandle } from '../sessions/handle';
-import { Accounts } from './accounts';
+import { AccountService } from './accounts';
+import { Permissions } from './permissions';
 
 // Which account a request acts in, and the signed-in user's membership of it. Runs after
 // `createAuthHandle`. The account comes from the request (a route param, a fixed slug, ...) and
@@ -58,15 +59,9 @@ function createAccountHandle(options: {
 		const { user } = AuthHandle.locals(event);
 		const slug = user ? options.slug(event) : null;
 		if (slug && user) {
-			const account = await Accounts.findBySlug(Auth.config().db(), slug);
-			const membership =
-				account &&
-				(await Accounts.resolveMembership(
-					Auth.config().db(),
-					Auth.config().accounts,
-					account.id,
-					user.id
-				));
+			const accounts = new AccountService(Auth.config().db(), Auth.config().accounts);
+			const account = await accounts.findBySlug(slug);
+			const membership = account && (await accounts.resolveMembership(account.id, user.id));
 			if (!account || !membership) error(404, 'Not found');
 			locals.account = account;
 			locals.membership = membership;
@@ -88,7 +83,7 @@ function requireAccount(event: RequestEvent): {
 /** The request's membership if it grants `permission`, else a 403 `ServiceError`. */
 function requirePermission(event: RequestEvent, permission: string): Membership {
 	const { membership } = requireAccount(event);
-	if (!Accounts.can(membership, permission))
+	if (!Permissions.can(membership, permission))
 		throw Error403('You do not have permission to do that');
 	return membership;
 }

@@ -5,13 +5,13 @@ import { redirect } from '@sveltejs/kit';
 
 import type { AccessConfig } from '../../cloudflare/access';
 import type { AccountLocals } from '../accounts/handle';
-import type { AuthSession, AuthUser } from './sessions';
+import type { AuthSession, AuthUser } from '../sign-in';
 
 import { ACCESS_JWT_HEADER, verifyAccessJwt } from '../../cloudflare/access';
 import { Error401 } from '../../utils/errors';
+import { Allowlist } from '../allowlist';
 import { Auth } from '../config';
-import { Users } from '../users';
-import { Sessions } from './sessions';
+import { SignInService } from '../sign-in';
 
 /** What the handle puts on `event.locals`. Apps extend it: `interface Locals extends AuthLocals`. */
 export type AuthLocals = AccountLocals & {
@@ -80,25 +80,26 @@ function createAuthHandle(options: AuthHandleOptions = {}): Handle {
 		const db = config.db();
 		const token = event.cookies.get(config.cookieName);
 		if (token) {
-			const live = await Sessions.validate(db, token);
+			const signIn = new SignInService(db);
+			const live = await signIn.validateSession(token);
 			const ok =
 				live &&
 				(await config.isAllowed(live.user.email)) &&
-				(!locals.accessEmail || Users.emailsMatch(locals.accessEmail, live.user.email));
+				(!locals.accessEmail || Allowlist.matches(locals.accessEmail, live.user.email));
 			if (ok) {
 				locals.session = live.session;
 				locals.user = live.user;
-				if (Sessions.needsRenewal(live.session.expiresAt, Date.now())) {
-					const expiresAt = await Sessions.renew(db, live.session.id);
+				if (SignInService.needsRenewal(live.session.expiresAt, Date.now())) {
+					const expiresAt = await signIn.renewSession(live.session.id);
 					locals.session = { ...live.session, expiresAt };
 					event.cookies.set(config.cookieName, token, {
-						...Sessions.cookieAttributes,
+						...SignInService.cookieAttributes,
 						domain: config.cookieDomain,
 						expires: new Date(expiresAt),
 					});
 				}
 			} else {
-				if (live) await Sessions.delete(db, live.session.id);
+				if (live) await signIn.deleteSession(live.session.id);
 				event.cookies.delete(config.cookieName, { domain: config.cookieDomain, path: '/' });
 			}
 		}
