@@ -24,6 +24,18 @@ export type SentryOptionsInput = {
 // the only sign an event came from a local run.
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(:\d+)?$/;
 const SECRET_HEADER = /^(authorization|cf-access-jwt-assertion|cookie|set-cookie)$/i;
+// A tab from an older deploy asking for a chunk or stylesheet that no longer exists.
+const STALE_CHUNK =
+	/Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Unable to preload CSS/;
+
+/** SvelteKit's `updated` from `$app/state`. */
+export type DeployVersion = { check(): Promise<boolean>; readonly current: boolean };
+
+type ExceptionEvent = { exception?: { values?: { value?: string }[] } };
+
+function isStaleChunk(event: ExceptionEvent): boolean {
+	return (event.exception?.values ?? []).some((e) => STALE_CHUNK.test(e.value ?? ''));
+}
 
 function isLocal(url: string | undefined): boolean {
 	if (!url) return false;
@@ -71,17 +83,20 @@ const dataCollection = {
  */
 export const SentryConfig = {
 	/** A client `handleError` that reports only unexpected errors: SvelteKit 3 also sends expected
-	 *  ones (a 404 page, `error(404)` from a query) through it. */
-	clientErrors(report: HandleClientError): HandleClientError {
-		return (input) => {
+	 *  ones (a 404 page, `error(404)` from a query) through it. With `updated`, an error from a tab
+	 *  left open across a deploy is not reported: the check flips `updated.current`, which shows
+	 *  `@zeyolabs/ui`'s `UpdateOverlay`. */
+	clientErrors(report: HandleClientError, updated?: DeployVersion): HandleClientError {
+		return async (input) => {
 			if (input.kind !== 'unknown' && input.error.status < 500) return;
+			if (updated && (updated.current || (await updated.check().catch(() => false)))) return;
 			return report(input);
 		};
 	},
 
 	options({ dev, dsn, release, service }: SentryOptionsInput) {
-		const beforeSend = <T extends ScrubbableEvent>(event: T): null | T => {
-			if (isLocal(event.request?.url)) return null;
+		const beforeSend = <T extends ExceptionEvent & ScrubbableEvent>(event: T): null | T => {
+			if (isLocal(event.request?.url) || isStaleChunk(event)) return null;
 			if (service) event.tags = { ...event.tags, service };
 			return scrub(event);
 		};

@@ -105,7 +105,7 @@ The setup every app repeats lives here:
 ```ts
 // hooks.client.ts
 Sentry.init(SentryConfig.options({ dev, dsn: SENTRY_DSN }));
-export const handleError = SentryConfig.clientErrors(Sentry.handleErrorWithSentry());
+export const handleError = SentryConfig.clientErrors(Sentry.handleErrorWithSentry(), updated); // $app/state
 
 // hooks.server.ts
 const sentry = SentryConfig.options({ dev, dsn: SENTRY_DSN, release });
@@ -114,7 +114,10 @@ export const handleError = AppHooks.serverErrors(Sentry.handleErrorWithSentry(Ap
 ```
 
 `SentryConfig` (`@zeyolabs/kit/monitoring/sentry`) sends nothing from dev or loopback hosts and
-collects no personal data. `AppHooks` (`@zeyolabs/kit/server/hooks`) sets security headers (a
+collects no personal data. Given SvelteKit's `updated`, `clientErrors` doesn't report an error from a
+tab left open across a deploy: it checks for a newer version, which shows `@zeyolabs/ui`'s
+`UpdateOverlay` (in the root layout, `<UpdateOverlay show={updated.current} />`); a chunk that no
+longer exists is never reported. `AppHooks` (`@zeyolabs/kit/server/hooks`) sets security headers (a
 `private` app is also never cached or indexed) and reports only unexpected errors.
 
 ## Developing against an app
