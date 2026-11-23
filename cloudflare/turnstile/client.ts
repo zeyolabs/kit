@@ -18,10 +18,8 @@ export interface ITurnstileClient {
 }
 
 /**
- * Cloudflare's Turnstile siteverify API. The widget's secret and site key come from the env store
- * by name (the secret is a Secrets Store binding in prod and `.dev.vars` locally; the site key is a
- * plain `vars` entry in `wrangler.jsonc`). On loopback hosts the test key pair stands in, so local
- * dev needs no real widget.
+ * Cloudflare's Turnstile siteverify API. The widget's secret and site key come from the env store by
+ * name. On loopback hosts the test key pair stands in, so local dev needs no real widget.
  */
 export class TurnstileClient implements ITurnstileClient {
 	constructor(
