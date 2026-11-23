@@ -5,8 +5,11 @@ import { TurnstileClient } from './client';
 
 async function client() {
 	EnvStore.resetForTests();
-	await EnvStore.resolve({ TURNSTILE_SECRET_KEY: 'real-secret' }, new Set());
-	return new TurnstileClient(EnvStore.current(), 'TURNSTILE_SECRET_KEY');
+	await EnvStore.resolve(
+		{ TURNSTILE_SECRET_KEY: 'real-secret', TURNSTILE_SITE_KEY: 'real-site' },
+		new Set()
+	);
+	return new TurnstileClient(EnvStore.current(), 'TURNSTILE_SECRET_KEY', 'TURNSTILE_SITE_KEY');
 }
 
 function siteverify(success: boolean) {
@@ -44,7 +47,7 @@ describe('TurnstileClient', () => {
 		const turnstile = await client();
 		await turnstile.verify({ hostname: 'localhost', ip: null, token: 't' });
 		expect(posted(fetch).secret).toBe('1x0000000000000000000000000000000AA');
-		expect(turnstile.siteKey('localhost', 'real')).toBe('1x00000000000000000000AA');
-		expect(turnstile.siteKey('app.example.com', 'real')).toBe('real');
+		expect(turnstile.siteKey('localhost')).toBe('1x00000000000000000000AA');
+		expect(turnstile.siteKey('app.example.com')).toBe('real-site');
 	});
 });

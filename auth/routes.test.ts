@@ -140,7 +140,7 @@ describe('turnstile on the email form', () => {
 			email: () => mail,
 			emailBrand: BRAND,
 			isAllowed: (email) => email.endsWith('@example.com'),
-			turnstile: { secretName: 'TURNSTILE_SECRET_KEY', siteKey: 'site-key' },
+			turnstile: { secretName: 'TURNSTILE_SECRET_KEY', siteKeyName: 'TURNSTILE_SITE_KEY' },
 		});
 		EnvStore.resetForTests();
 		await EnvStore.resolve({ TURNSTILE_SECRET_KEY: 'secret-key' }, new Set());

@@ -4,14 +4,17 @@ import type { ITurnstileClient } from './client';
 export class FakeTurnstileClient implements ITurnstileClient {
 	readonly checks: Parameters<ITurnstileClient['verify']>[0][] = [];
 
-	constructor(private human = true) {}
+	constructor(
+		private human = true,
+		private readonly key = 'fake-site-key'
+	) {}
 
 	respondWith(human: boolean): void {
 		this.human = human;
 	}
 
-	siteKey(_hostname: string, siteKey: string): string {
-		return siteKey;
+	siteKey(): string {
+		return this.key;
 	}
 
 	verify(check: Parameters<ITurnstileClient['verify']>[0]): Promise<boolean> {

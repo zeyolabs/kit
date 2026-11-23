@@ -37,7 +37,9 @@ export class SignInManager {
 		const { db, turnstile } = Auth.config();
 		this.signIn = new SignInService(
 			db(),
-			turnstile ? new TurnstileClient(envStore(), turnstile.secretName) : null
+			turnstile
+				? new TurnstileClient(envStore(), turnstile.secretName, turnstile.siteKeyName)
+				: null
 		);
 	}
 

@@ -69,7 +69,8 @@ export type AuthConfig = {
 	turnstile?: {
 		/** The env secret holding the widget's secret key, read with `envStore().secret()`. */
 		secretName: string;
-		siteKey: string;
+		/** The `wrangler.jsonc` var holding the widget's public site key, read with `envStore().string()`. */
+		siteKeyName: string;
 	};
 };
 

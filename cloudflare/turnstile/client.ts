@@ -11,25 +11,27 @@ const TEST_SITE_KEY = '1x00000000000000000000AA';
 const LOOPBACK = /^(localhost|127\.0\.0\.1|\[::1\])$/;
 
 export interface ITurnstileClient {
-	/** The widget's site key for this host: the real one, or the test key on loopback. */
-	siteKey(hostname: string, siteKey: string): string;
+	/** The widget's site key for this host: the app's, or the test key on loopback. */
+	siteKey(hostname: string): string;
 	/** True only when siteverify accepts the token. An empty token is false without a request. */
 	verify(check: { hostname: string; ip: null | string; token: string }): Promise<boolean>;
 }
 
 /**
- * Cloudflare's Turnstile siteverify API. The widget's secret comes from the env store by name
- * (a Secrets Store binding in prod, `.dev.vars` locally). On loopback hosts the test key pair
- * stands in, so local dev needs no real widget.
+ * Cloudflare's Turnstile siteverify API. The widget's secret and site key come from the env store
+ * by name (the secret is a Secrets Store binding in prod and `.dev.vars` locally; the site key is a
+ * plain `vars` entry in `wrangler.jsonc`). On loopback hosts the test key pair stands in, so local
+ * dev needs no real widget.
  */
 export class TurnstileClient implements ITurnstileClient {
 	constructor(
 		private readonly env: EnvStore,
-		private readonly secretName: string
+		private readonly secretName: string,
+		private readonly siteKeyName: string
 	) {}
 
-	siteKey(hostname: string, siteKey: string): string {
-		return LOOPBACK.test(hostname) ? TEST_SITE_KEY : siteKey;
+	siteKey(hostname: string): string {
+		return LOOPBACK.test(hostname) ? TEST_SITE_KEY : this.env.string(this.siteKeyName);
 	}
 
 	async verify({
