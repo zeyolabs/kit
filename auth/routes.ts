@@ -1,32 +1,6 @@
 import type { RequestEvent, RequestHandler } from '@sveltejs/kit';
 
-import { json, redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
-import { z } from 'zod';
-
-import type { LoginError } from './login';
-import type { AuthUser } from './sessions/sessions';
-
-import { TurnstileClient } from '../cloudflare/turnstile/client';
-import { logger } from '../server/logger';
-import { envStore } from '../utils/env';
-import { ServiceError } from '../utils/errors';
-import { Invites } from './accounts/invites';
-import { Auth } from './config';
-import { EmailLinkService } from './email-link';
-import { Login } from './login';
-import { users } from './schema';
-import { AuthHandle } from './sessions/handle';
-import { MagicLink } from './sessions/magic-link/magic-link';
-import {
-	AuthenticationResponse,
-	PasskeyError,
-	RegistrationResponse,
-	type RelyingParty,
-} from './sessions/passkeys/passkeys';
-import { Passkeys } from './sessions/passkeys/passkeys';
-import { Sessions } from './sessions/sessions';
-import { Users } from './users';
+import { SignInManager } from './sign-in-manager';
 
 // The auth endpoints, mounted by the app with one file:
 //   src/routes/auth/[...path]/+server.ts:  export { POST } from '@zeyolabs/kit/auth/routes';
@@ -44,210 +18,24 @@ import { Users } from './users';
 // The emailed link opens the login page (`?token=`), which posts it here from a button: mail
 // scanners that prefetch links can't burn the token or sign anyone in.
 
-const CHALLENGE_MAX_AGE = 5 * 60;
-
-const challengeCookie = () => `${Auth.config().cookieName}_challenge`;
-
-function relyingParty(event: RequestEvent): RelyingParty {
-	const { appName, passkeyRpId } = Auth.config();
-	return { id: passkeyRpId ?? event.url.hostname, name: appName, origin: event.url.origin };
-}
-
-function toLogin(error: LoginError | null, next: string, sent = false): never {
-	const params = new URLSearchParams();
-	if (error) params.set('error', error);
-	if (sent) params.set('sent', '1');
-	if (next !== '/') params.set('next', next);
-	const query = params.toString();
-	redirect(303, `${Auth.config().loginPath}${query ? `?${query}` : ''}`);
-}
-
-/** Checks a would-be session user against the allowlist and the Access identity. */
-function refusal(event: RequestEvent, email: string): Promise<LoginError | null> {
-	return EmailLinkService.refusal(email, AuthHandle.locals(event).accessEmail);
-}
-
-async function signIn(event: RequestEvent, user: AuthUser): Promise<void> {
-	const { expiresAt, token } = await Sessions.create(Auth.config().db(), user.id);
-	event.cookies.set(Auth.config().cookieName, token, {
-		...Sessions.cookieAttributes,
-		domain: Auth.config().cookieDomain,
-		expires: new Date(expiresAt),
-	});
-	await Auth.config().onSignIn?.(user);
-}
-
-function setChallenge(event: RequestEvent): string {
-	const challenge = Passkeys.newChallenge();
-	event.cookies.set(challengeCookie(), challenge, {
-		...Sessions.cookieAttributes,
-		maxAge: CHALLENGE_MAX_AGE,
-		path: '/auth/passkey',
-		sameSite: 'strict',
-	});
-	return challenge;
-}
-
-/** The pending challenge, used up: each one answers exactly one ceremony. */
-function takeChallenge(event: RequestEvent): string {
-	const challenge = event.cookies.get(challengeCookie());
-	event.cookies.delete(challengeCookie(), { path: '/auth/passkey' });
-	if (!challenge) throw new PasskeyError('No pending challenge');
-	return challenge;
-}
-
-/** Adding or removing a passkey needs a session, and adding one needs a recent sign-in. */
-function sessionUser(event: RequestEvent, fresh: boolean): AuthUser | Response {
-	const { session, user } = AuthHandle.locals(event);
-	if (!session || !user) return json({ message: 'Sign in first' }, { status: 401 });
-	if (fresh && Date.now() - session.createdAt > Passkeys.FRESH_SESSION_MS) {
-		return json(
-			{ message: 'For security, sign in again before adding a passkey', reauth: true },
-			{ status: 403 }
-		);
-	}
-	return user;
-}
-
-async function emailLink(event: RequestEvent): Promise<never> {
-	const form = await event.request.formData();
-	const next = Login.safeNext(form.get('next'));
-	const { turnstile } = Auth.config();
-	const service = new EmailLinkService(
-		Auth.config().db(),
-		turnstile ? new TurnstileClient(envStore(), turnstile.secretName) : null
-	);
-	const { error, sent } = await service.request({
-		accessEmail: AuthHandle.locals(event).accessEmail,
-		email: form.get('email'),
-		hostname: event.url.hostname,
-		ip: event.getClientAddress(),
-		next,
-		origin: event.url.origin,
-		turnstileToken: String(form.get('turnstileToken') ?? ''),
-	});
-	toLogin(error, next, sent);
-}
-
-async function verifyLink(event: RequestEvent): Promise<never> {
-	const form = await event.request.formData();
-	const next = Login.safeNext(form.get('next'));
-	const email = await MagicLink.consume(Auth.config().db(), String(form.get('token') ?? ''));
-	if (!email) toLogin('expired', next);
-	const refused = await refusal(event, email);
-	if (refused) toLogin(refused, next);
-	await signIn(event, await Users.findOrCreate(Auth.config().db(), email));
-	redirect(303, next);
-}
-
-async function logout(event: RequestEvent): Promise<never> {
-	const { session } = AuthHandle.locals(event);
-	if (session) await Sessions.delete(Auth.config().db(), session.id);
-	event.cookies.delete(Auth.config().cookieName, { domain: Auth.config().cookieDomain, path: '/' });
-	redirect(303, Auth.config().loginPath);
-}
-
-async function passkeyLogin(event: RequestEvent): Promise<Response> {
-	const body = z
-		.object({ credential: AuthenticationResponse, next: z.string().optional() })
-		.safeParse(await event.request.json().catch(() => null));
-	if (!body.success) return json({ message: 'Malformed request' }, { status: 400 });
-	const db = Auth.config().db();
-	try {
-		const challenge = takeChallenge(event);
-		const passkey = await Passkeys.find(db, body.data.credential.rawId);
-		if (!passkey) throw new PasskeyError('Unknown passkey');
-		const signCount = Passkeys.verifyAuthentication(
-			body.data.credential,
-			challenge,
-			relyingParty(event),
-			passkey
-		);
-		const [user] = await db.select().from(users).where(eq(users.id, passkey.userId)).limit(1);
-		const refused = await refusal(event, user.email);
-		if (refused) return json({ code: refused, message: 'Not allowed' }, { status: 403 });
-		await Passkeys.recordUse(db, passkey.id, signCount);
-		await signIn(event, user);
-		return json({ redirect: Login.safeNext(body.data.next) });
-	} catch (err) {
-		if (!(err instanceof PasskeyError)) throw err;
-		logger.warn(`passkey sign-in refused: ${err.message}`);
-		return json({ message: 'That passkey could not be verified' }, { status: 400 });
-	}
-}
-
-async function passkeyRegisterOptions(event: RequestEvent): Promise<Response> {
-	const user = sessionUser(event, true);
-	if (user instanceof Response) return user;
-	const existing = await Passkeys.list(Auth.config().db(), user.id);
-	const ids = existing.map((p) => p.id);
-	return json(Passkeys.registrationOptions(relyingParty(event), user, setChallenge(event), ids));
-}
-
-async function passkeyRegister(event: RequestEvent): Promise<Response> {
-	const user = sessionUser(event, true);
-	if (user instanceof Response) return user;
-	const body = z
-		.object({ credential: RegistrationResponse, name: z.string().trim().max(60).optional() })
-		.safeParse(await event.request.json().catch(() => null));
-	if (!body.success) return json({ message: 'Malformed request' }, { status: 400 });
-	try {
-		const credential = Passkeys.verifyRegistration(
-			body.data.credential,
-			takeChallenge(event),
-			relyingParty(event)
-		);
-		await Passkeys.save(Auth.config().db(), user.id, body.data.name || 'Passkey', credential);
-		return json({ ok: true });
-	} catch (err) {
-		if (!(err instanceof PasskeyError)) throw err;
-		logger.warn(`passkey registration refused: ${err.message}`);
-		return json({ message: 'That passkey could not be added' }, { status: 400 });
-	}
-}
-
-async function passkeyDelete(event: RequestEvent): Promise<never> {
-	const form = await event.request.formData();
-	const next = Login.safeNext(form.get('next'));
-	const user = sessionUser(event, false);
-	if (user instanceof Response) toLogin(null, next);
-	await Passkeys.delete(Auth.config().db(), user.id, String(form.get('id') ?? ''));
-	redirect(303, next);
-}
-
-/** Accepts an invite for the signed-in user (the invite page posts here) and opens the account. */
-async function invite(event: RequestEvent): Promise<never> {
-	const form = await event.request.formData();
-	const token = String(form.get('token') ?? '');
-	const { user } = AuthHandle.locals(event);
-	const invitePage = `${Auth.config().invitePath}?token=${encodeURIComponent(token)}`;
-	if (!user) toLogin(null, invitePage);
-	const account = await Invites.accept(Auth.config().db(), token, user).catch((err: unknown) => {
-		if (err instanceof ServiceError) redirect(303, `${invitePage}&error=${err.status}`);
-		throw err;
-	});
-	redirect(303, Auth.config().accountHome(account.slug));
-}
-
-const handlers: Record<string, (event: RequestEvent) => Promise<Response>> = {
-	email: emailLink,
-	'invite/accept': invite,
-	logout,
-	'passkey/delete': passkeyDelete,
-	'passkey/login': passkeyLogin,
-	'passkey/login-options': async (event) =>
-		json(Passkeys.authenticationOptions(relyingParty(event), setChallenge(event))),
-	'passkey/register': passkeyRegister,
-	'passkey/register-options': passkeyRegisterOptions,
-	verify: verifyLink,
+const handlers: Record<string, (manager: SignInManager) => Promise<Response> | Response> = {
+	email: (m) => m.emailLink(),
+	'invite/accept': (m) => m.acceptInvite(),
+	logout: (m) => m.logout(),
+	'passkey/delete': (m) => m.passkeyDelete(),
+	'passkey/login': (m) => m.passkeyLogin(),
+	'passkey/login-options': (m) => m.passkeyLoginOptions(),
+	'passkey/register': (m) => m.passkeyRegister(),
+	'passkey/register-options': (m) => m.passkeyRegisterOptions(),
+	verify: (m) => m.verifyLink(),
 };
 
-export const POST: RequestHandler = async (event) => {
+export const POST: RequestHandler = async (event: RequestEvent) => {
 	// SvelteKit's CSRF check only covers form posts; the JSON endpoints need the same guard.
 	if (event.request.headers.get('origin') !== event.url.origin) {
 		return new Response('Cross-site request refused', { status: 403 });
 	}
 	const handler = handlers[event.params.path ?? ''];
 	if (!handler) return new Response('Not found', { status: 404 });
-	return handler(event);
+	return handler(new SignInManager(event));
 };

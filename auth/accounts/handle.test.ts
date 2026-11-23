@@ -7,14 +7,23 @@ import type { AuthDb } from '../config';
 import { FakeEmailClient } from '../../cloudflare/email/testing';
 import { createTestDb } from '../__fixtures__/db';
 import { Auth } from '../config';
-import { Users } from '../users';
-import { Accounts } from './accounts';
+import { SignInService } from '../sign-in';
+import { AccountService } from './accounts';
 import { AccountHandle } from './handle';
 
+const catalogue = {
+	memberPermissions: ['projects.read'],
+	permissions: ['projects.read', 'projects.edit'],
+};
+
 let db: AuthDb;
+let accounts: AccountService;
+let signIn: SignInService;
 
 beforeEach(async () => {
 	db = await createTestDb();
+	accounts = new AccountService(db, catalogue);
+	signIn = new SignInService(db);
 	Auth.configure({
 		accounts: {
 			memberPermissions: ['projects.read'],
@@ -61,10 +70,10 @@ describe('AccountHandle.slugFromRoute', () => {
 
 describe('AccountHandle.create', () => {
 	it('sets the membership for members and 404s for anyone else', async () => {
-		const ada = await Users.findOrCreate(db, 'ada@example.com');
-		const eve = await Users.findOrCreate(db, 'eve@example.com');
-		const { id } = await Accounts.create(db, { name: 'Acme', slug: 'acme' });
-		await Accounts.addMember(db, id, ada.id, 'member');
+		const ada = await signIn.findOrCreateUser('ada@example.com');
+		const eve = await signIn.findOrCreateUser('eve@example.com');
+		const { id } = await accounts.create({ name: 'Acme', slug: 'acme' });
+		await accounts.addMember(id, ada.id, 'member');
 		const handle = AccountHandle.create({ slug: () => 'acme' });
 		const resolve = vi.fn(async () => new Response('ok'));
 
@@ -116,17 +125,17 @@ describe('Auth.configure owners', () => {
 		expect(await config.isAllowed('boss@example.com')).toBe(true);
 		expect(await config.isAllowed('stranger@example.com')).toBe(false);
 
-		const boss = await Users.findOrCreate(db, 'boss@example.com');
+		const boss = await signIn.findOrCreateUser('boss@example.com');
 		await config.onSignIn?.(boss);
-		const shop = await Accounts.findBySlug(db, 'shop');
+		const shop = await accounts.findBySlug('shop');
 		expect(shop).not.toBeNull();
 		expect(await config.isAllowed('boss@example.com')).toBe(true);
 		expect(seen).toEqual(['boss@example.com']);
 
-		const other = await Users.findOrCreate(db, 'other@example.com');
+		const other = await signIn.findOrCreateUser('other@example.com');
 		await config.onSignIn?.(other);
 		expect(seen).toEqual(['boss@example.com', 'other@example.com']);
-		const members = await Accounts.listForUser(db, other.id);
+		const members = await accounts.listForUser(other.id);
 		expect(members).toHaveLength(0);
 	});
 
@@ -142,21 +151,16 @@ describe('Auth.configure owners', () => {
 	});
 
 	it('does not promote an owner email that is already a member', async () => {
-		const first = await Users.findOrCreate(db, 'first@example.com');
-		const dana = await Users.findOrCreate(db, 'dana@example.com');
-		const shop = await Accounts.create(db, { name: 'Shop', slug: 'shop' }, first.id);
-		await Accounts.addMember(db, shop.id, dana.id, 'member');
+		const first = await signIn.findOrCreateUser('first@example.com');
+		const dana = await signIn.findOrCreateUser('dana@example.com');
+		const shop = await accounts.create({ name: 'Shop', slug: 'shop' }, first.id);
+		await accounts.addMember(shop.id, dana.id, 'member');
 		Auth.configure({
 			...base(),
 			owners: { account: { name: 'Shop', slug: 'shop' }, emails: () => 'dana@example.com' },
 		});
 		await Auth.config().onSignIn?.(dana);
-		const membership = await Accounts.resolveMembership(
-			db,
-			{ memberPermissions: ['projects.read'], permissions: ['projects.read'] },
-			shop.id,
-			dana.id
-		);
+		const membership = await accounts.resolveMembership(shop.id, dana.id);
 		expect(membership?.policy.key).toBe('member');
 	});
 

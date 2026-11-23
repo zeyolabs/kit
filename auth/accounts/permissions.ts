@@ -1,3 +1,5 @@
+import { Error403 } from '../../utils/errors';
+
 // Permissions and policies. Pure (no db), so pages can use them too, e.g. to hide a button.
 //
 // A permission is a key like `projects.edit`: `<resource>.<action>`. A policy is a named set of
@@ -80,9 +82,21 @@ function isValidPolicyKey(key: string): boolean {
 	return /^[a-z0-9][a-z0-9-]{0,39}$/.test(key) && !isBuiltInPolicy(key);
 }
 
+/** Whether a membership's policy grants `permission`. A non-member grants nothing. */
+function can(membership: null | { policy: Policy }, permission: string): boolean {
+	return !!membership && grants(membership.policy.permissions, permission);
+}
+
+/** Throws a 403 unless `membership` grants `permission`. */
+function assertCan(membership: { policy: Policy }, permission: string): void {
+	if (!can(membership, permission)) throw Error403('You do not have permission to do that');
+}
+
 export const Permissions = {
 	ACCOUNT: ACCOUNT_PERMISSIONS,
+	assertCan,
 	builtIns: builtInPolicies,
+	can,
 	grants,
 	isBuiltIn: isBuiltInPolicy,
 	isGrantable: isGrantableKey,

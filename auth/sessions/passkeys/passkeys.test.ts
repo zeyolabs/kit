@@ -5,7 +5,7 @@ import type { AuthUser } from '../sessions';
 
 import { TestAuthenticator } from '../../__fixtures__/authenticator';
 import { createTestDb } from '../../__fixtures__/db';
-import { Users } from '../../users';
+import { SignInService } from '../../sign-in';
 import { PasskeyError, type RelyingParty } from './passkeys';
 import { Passkeys } from './passkeys';
 
@@ -16,12 +16,14 @@ const rp: RelyingParty = {
 };
 
 let db: AuthDb;
+let signIn: SignInService;
 let user: AuthUser;
 let authenticator: TestAuthenticator;
 
 beforeEach(async () => {
 	db = await createTestDb();
-	user = await Users.findOrCreate(db, 'ada@example.com');
+	signIn = new SignInService(db);
+	user = await signIn.findOrCreateUser('ada@example.com');
 	authenticator = await TestAuthenticator.create();
 });
 
@@ -32,8 +34,8 @@ async function registered() {
 		challenge,
 		rp
 	);
-	await Passkeys.save(db, user.id, 'Laptop', credential);
-	return (await Passkeys.find(db, credential.id))!;
+	await signIn.savePasskey(user.id, 'Laptop', credential);
+	return (await signIn.findPasskey(credential.id))!;
 }
 
 describe('registration', () => {
@@ -45,7 +47,7 @@ describe('registration', () => {
 			name: 'Laptop',
 			userId: user.id,
 		});
-		expect(await Passkeys.list(db, user.id)).toHaveLength(1);
+		expect(await signIn.listPasskeys(user.id)).toHaveLength(1);
 	});
 
 	it('rejects a different challenge, origin or RP', async () => {
@@ -148,9 +150,9 @@ describe('keys whose coordinate starts with a zero byte', () => {
 describe('Passkeys.delete', () => {
 	it("only deletes the user's own passkey", async () => {
 		const stored = await registered();
-		const other = await Users.findOrCreate(db, 'eve@example.com');
-		expect(await Passkeys.delete(db, other.id, stored.id)).toBe(false);
-		expect(await Passkeys.delete(db, user.id, stored.id)).toBe(true);
-		expect(await Passkeys.find(db, stored.id)).toBeNull();
+		const other = await signIn.findOrCreateUser('eve@example.com');
+		expect(await signIn.deletePasskey(other.id, stored.id)).toBe(false);
+		expect(await signIn.deletePasskey(user.id, stored.id)).toBe(true);
+		expect(await signIn.findPasskey(stored.id)).toBeNull();
 	});
 });

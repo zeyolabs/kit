@@ -3,10 +3,10 @@ import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import type { IEmailClient } from '../cloudflare/email/base';
 import type { EmailBrand } from '../utils/email';
 import type { PermissionCatalogue } from './accounts/permissions';
-import type { AuthUser } from './sessions/sessions';
+import type { AuthUser } from './sign-in';
 
-import { Accounts } from './accounts/accounts';
-import { Allowlist } from './users';
+import { AccountService } from './accounts/accounts';
+import { Allowlist } from './allowlist';
 
 /** Any async drizzle SQLite client (D1 in prod). A consumer's larger, schema-bound `Db` is
  *  assignable. */
@@ -52,7 +52,7 @@ export type AuthConfig = {
 	 *
 	 * An email that is already a member keeps their current policy: `owners` never promotes them.
 	 * Removing an email from `emails` does not sign out someone who already signed in: their owner
-	 * membership stays and `Accounts.hasAccess` keeps allowing them. Remove them from the account's
+	 * membership stays and `AccountService.hasAccess` keeps allowing them. Remove them from the account's
 	 * members too (the members page) to revoke access.
 	 */
 	owners?: {
@@ -106,13 +106,13 @@ function configureAuth(
 		isAllowed: owners
 			? async (email) =>
 					isOwnerEmail(email) ||
-					(await Accounts.hasAccess(db(), email)) ||
+					(await new AccountService(db(), config.accounts).hasAccess(email)) ||
 					(isAllowed ? await isAllowed(email) : false)
 			: isAllowed!,
 		onSignIn: owners
 			? async (user) => {
 					if (isOwnerEmail(user.email)) {
-						await Accounts.ensureOwner(db(), owners.account, user.id);
+						await new AccountService(db(), config.accounts).ensureOwner(owners.account, user.id);
 					}
 					await onSignIn?.(user);
 				}

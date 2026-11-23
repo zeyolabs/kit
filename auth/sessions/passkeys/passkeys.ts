@@ -24,13 +24,9 @@ import {
 	parseAuthenticatorData,
 	parseClientDataJSON,
 } from '@oslojs/webauthn';
-import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import type { AuthDb } from '../../config';
-import type { AuthUser } from '../sessions';
-
-import { passkeys } from '../../schema';
+import type { AuthUser } from '../../sign-in';
 
 // WebAuthn passkeys, verified server-side with oslo (pure JS, runs on Workers). Only what a
 // passkey sign-in needs: no attestation (we ask for `none` and never trust a vendor's chain),
@@ -234,62 +230,11 @@ function verifyAuthentication(
 	return count;
 }
 
-async function listPasskeys(db: AuthDb, userId: number) {
-	return db
-		.select({
-			createdAt: passkeys.createdAt,
-			id: passkeys.id,
-			lastUsedAt: passkeys.lastUsedAt,
-			name: passkeys.name,
-		})
-		.from(passkeys)
-		.where(eq(passkeys.userId, userId))
-		.orderBy(passkeys.createdAt);
-}
-
-async function findPasskey(db: AuthDb, id: string) {
-	const [row] = await db.select().from(passkeys).where(eq(passkeys.id, id)).limit(1);
-	return row ?? null;
-}
-
-async function savePasskey(
-	db: AuthDb,
-	userId: number,
-	name: string,
-	credential: ReturnType<typeof verifyRegistration>,
-	now = Date.now()
-): Promise<void> {
-	await db.insert(passkeys).values({ ...credential, createdAt: now, name, userId });
-}
-
-async function recordPasskeyUse(
-	db: AuthDb,
-	id: string,
-	signCount: number,
-	now = Date.now()
-): Promise<void> {
-	await db.update(passkeys).set({ lastUsedAt: now, signCount }).where(eq(passkeys.id, id));
-}
-
-/** Deletes one of `userId`'s passkeys; `false` if it isn't theirs. */
-async function deletePasskey(db: AuthDb, userId: number, id: string): Promise<boolean> {
-	const deleted = await db
-		.delete(passkeys)
-		.where(and(eq(passkeys.id, id), eq(passkeys.userId, userId)))
-		.returning({ id: passkeys.id });
-	return deleted.length > 0;
-}
-
 export const Passkeys = {
 	authenticationOptions,
-	delete: deletePasskey,
-	find: findPasskey,
 	FRESH_SESSION_MS,
-	list: listPasskeys,
 	newChallenge,
-	recordUse: recordPasskeyUse,
 	registrationOptions,
-	save: savePasskey,
 	verifyAuthentication,
 	verifyRegistration,
 };
