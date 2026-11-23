@@ -116,7 +116,7 @@ export const handleError = AppHooks.serverErrors(Sentry.handleErrorWithSentry(Ap
 `SentryConfig` (`@zeyolabs/kit/monitoring/sentry`) sends nothing from dev or loopback hosts and
 collects no personal data. Given SvelteKit's `updated`, `clientErrors` doesn't report an error from a
 tab left open across a deploy: it checks for a newer version, which shows `@zeyolabs/ui`'s
-`UpdateOverlay` (in the root layout, `<UpdateOverlay show={updated.current} />`); a chunk that no
+`UpdateOverlay` (once in the root layout, `<UpdateOverlay />`); a chunk that no
 longer exists is never reported. `AppHooks` (`@zeyolabs/kit/server/hooks`) sets security headers (a
 `private` app is also never cached or indexed) and reports only unexpected errors.
 
