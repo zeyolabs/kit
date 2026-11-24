@@ -129,7 +129,7 @@
 	},
 	"peerDependencies": {
 		"@cloudflare/workers-types": "*",
-		"@electric-sql/pglite": "^0.5.8",
+		"@electric-sql/pglite": "^0.5.8 || ^0.6.0",
 		"@sentry/sveltekit": "^11.4.0",
 		"@sveltejs/adapter-cloudflare": "^9.0.0",
 		"@sveltejs/kit": "^3.1.1",
@@ -175,7 +175,7 @@
 		"@bufbuild/buf": "1.75.0",
 		"@bufbuild/protoc-gen-es": "2.17.0",
 		"@cloudflare/workers-types": "5.20261119.1",
-		"@electric-sql/pglite": "0.5.16",
+		"@electric-sql/pglite": "0.6.0",
 		"@libsql/client": "0.18.0",
 		"@sentry/sveltekit": "11.12.0",
 		"@sveltejs/adapter-cloudflare": "9.0.0",
