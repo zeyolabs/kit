@@ -33,10 +33,19 @@ const SECRET_HEADER = /^(authorization|cf-access-jwt-assertion|cookie|set-cookie
 const STALE_CHUNK =
 	/^Failed to fetch\b|Importing a module script failed|error loading dynamically imported module|Unable to preload CSS/;
 
+// A fetch dropped on the visitor's side (Safari, Firefox and Chrome word it differently), and
+// Turnstile's generic client errors (6xxxxx: the widget failed on their device). Not app bugs.
+const VISITOR_SIDE =
+	/^(Load failed|NetworkError when attempting to fetch resource|The network connection was lost|Network request failed)\b|\[Cloudflare Turnstile\] Error: 6\d{5}/;
+
 /** SvelteKit's `updated` from `$app/state`. */
 export type DeployVersion = { check(): Promise<boolean>; readonly current: boolean };
 
 type ExceptionEvent = { exception?: { values?: { value?: string }[] } };
+
+function isVisitorSide(event: ExceptionEvent): boolean {
+	return (event.exception?.values ?? []).some((e) => VISITOR_SIDE.test(e.value ?? ''));
+}
 
 function isStaleChunk(event: ExceptionEvent): boolean {
 	return (event.exception?.values ?? []).some((e) => STALE_CHUNK.test(e.value ?? ''));
@@ -107,6 +116,7 @@ export const SentryConfig = {
 		const beforeSend = <T extends ExceptionEvent & ScrubbableEvent>(
 			event: T
 		): null | Promise<null | T> | T => {
+			if (isVisitorSide(event)) return null;
 			if (!updated) return beforeSendTransaction(event);
 			if (updated.current) return null;
 			if (isStaleChunk(event)) {

@@ -26,6 +26,24 @@ describe('SentryConfig.options', () => {
 		expect(options.beforeSend({ request: { url: 'https://app.workers.dev/' } })).not.toBeNull();
 	});
 
+	it('drops failures on the visitor side, but still reports an invalid sitekey', () => {
+		const event = (value: string) => ({ exception: { values: [{ value }] } });
+		for (const value of [
+			'Load failed',
+			'NetworkError when attempting to fetch resource.',
+			'The network connection was lost.',
+			'[Cloudflare Turnstile] Error: 600010.',
+		]) {
+			expect(options.beforeSend(event(value))).toBeNull();
+		}
+		for (const value of [
+			'[Cloudflare Turnstile] Error: 400020.',
+			'Cannot read properties of undefined',
+		]) {
+			expect(options.beforeSend(event(value))).not.toBeNull();
+		}
+	});
+
 	it('with updated, drops any error once a newer deploy is live', async () => {
 		const event = () => ({ exception: { values: [{ value: 'x is undefined' }] } });
 		const send = (current: boolean, check: () => Promise<boolean>) =>
