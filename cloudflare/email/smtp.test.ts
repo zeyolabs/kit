@@ -8,13 +8,15 @@ import { SmtpClient, smtpConnection } from './smtp';
 
 const settings = { host: 'smtp.example.com', password: 'pw', port: 587, username: 'user' };
 const log = { error: vi.fn(async () => undefined) };
-const client = () =>
-	new SmtpClient({
-		...settings,
-		from: 'noreply@example.com',
-		fromName: 'Example',
-		logger: log as never,
+const env = () =>
+	new EnvStore({
+		SES_SMTP_PASSWORD: settings.password,
+		SMTP_HOST: settings.host,
+		SMTP_PORT: String(settings.port),
+		SMTP_USERNAME: settings.username,
 	});
+const client = () =>
+	new SmtpClient(env(), { from: 'noreply@example.com', fromName: 'Example', logger: log as never });
 
 beforeEach(() => {
 	send.mockClear();
@@ -88,26 +90,5 @@ describe('SmtpClient', () => {
 		await expect(
 			client().deliver({ subject: 's', text: 't', to: 'x@example.com' })
 		).rejects.toThrow('auth failed');
-	});
-});
-
-describe('SmtpClient.fromEnv', () => {
-	it('reads the fixed SMTP names from the environment', async () => {
-		const env = new EnvStore({
-			SES_SMTP_PASSWORD: 'pw',
-			SMTP_HOST: 'smtp.example.com',
-			SMTP_PORT: '587',
-			SMTP_USERNAME: 'user',
-		});
-		await SmtpClient.fromEnv(env, { from: 'noreply@example.com' }).deliver({
-			subject: 's',
-			text: 't',
-			to: 'bob@example.com',
-		});
-		expect(send.mock.calls[0][0]).toMatchObject({
-			credentials: { password: 'pw', username: 'user' },
-			host: 'smtp.example.com',
-			port: 587,
-		});
 	});
 });

@@ -22,29 +22,19 @@ export function smtpConnection({ host, password, port, username }: SmtpSettings)
 	};
 }
 
+/** Settings are read from `env` when a message is delivered: the vars `SMTP_HOST`, `SMTP_PORT` and `SMTP_USERNAME`, and the secret `SES_SMTP_PASSWORD`. */
 export class SmtpClient extends BaseEmailClient {
-	private readonly settings: SmtpSettings;
-
-	constructor(config: EmailSender & SmtpSettings) {
-		super(config);
-		this.settings = config;
-	}
-
-	/** A client whose settings come from `env`: the vars `SMTP_HOST`, `SMTP_PORT` and `SMTP_USERNAME`, and the secret `SES_SMTP_PASSWORD`. */
-	static fromEnv(env: EnvStore, sender: EmailSender): SmtpClient {
-		return new SmtpClient({
-			...sender,
-			host: env.string('SMTP_HOST'),
-			password: env.secret('SES_SMTP_PASSWORD'),
-			port: env.int('SMTP_PORT'),
-			username: env.string('SMTP_USERNAME'),
-		});
+	constructor(
+		private readonly env: EnvStore,
+		sender: EmailSender
+	) {
+		super(sender);
 	}
 
 	async deliver(input: Email): Promise<void> {
 		// Loaded lazily: it imports cloudflare:sockets, which only exists on Workers.
 		const { WorkerMailer } = await import('worker-mailer');
-		await WorkerMailer.send(smtpConnection(this.settings), {
+		await WorkerMailer.send(smtpConnection(this.settings()), {
 			attachments: input.attachments?.map((a) => ({
 				content: a.base64Data,
 				filename: a.filename,
@@ -57,5 +47,14 @@ export class SmtpClient extends BaseEmailClient {
 			text: input.text,
 			to: input.to,
 		});
+	}
+
+	private settings(): SmtpSettings {
+		return {
+			host: this.env.string('SMTP_HOST'),
+			password: this.env.secret('SES_SMTP_PASSWORD'),
+			port: this.env.int('SMTP_PORT'),
+			username: this.env.string('SMTP_USERNAME'),
+		};
 	}
 }
