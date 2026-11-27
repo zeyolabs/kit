@@ -6,7 +6,7 @@ import { logger as defaultLogger, type LoggerClient } from '../../monitoring/log
 
 export type EmailAttachment = { base64Data: string; contentType: string; filename: string };
 
-export type Email = {
+export type Message = {
 	attachments?: EmailAttachment[];
 	/** Sender address for this message, overriding the client's `from`. */
 	from?: string;
@@ -22,9 +22,9 @@ export type Email = {
 
 export interface IEmailClient {
 	/** Sends one message; throws on failure, for callers that retry (queue consumers). */
-	deliver(input: Email): Promise<void>;
+	deliver(input: Message): Promise<void>;
 	/** Sends one message. Logs and returns `false` on failure instead of throwing. */
-	send(input: Email): Promise<boolean>;
+	send(input: Message): Promise<boolean>;
 }
 
 export type EmailSender = {
@@ -38,9 +38,9 @@ export type EmailSender = {
 export abstract class BaseEmailClient implements IEmailClient {
 	constructor(protected readonly sender: EmailSender) {}
 
-	abstract deliver(input: Email): Promise<void>;
+	abstract deliver(input: Message): Promise<void>;
 
-	async send(input: Email): Promise<boolean> {
+	async send(input: Message): Promise<boolean> {
 		try {
 			await this.deliver(input);
 			return true;
@@ -55,12 +55,12 @@ export abstract class BaseEmailClient implements IEmailClient {
 	}
 
 	/** The sender address for one message: its own, else the client's. */
-	protected fromFor(input: Email): string {
+	protected fromFor(input: Message): string {
 		return input.from ?? this.sender.from;
 	}
 
 	/** The display name for one message: its own, else the client's. */
-	protected nameFor(input: Email): string | undefined {
+	protected nameFor(input: Message): string | undefined {
 		return input.fromName ?? this.sender.fromName;
 	}
 }

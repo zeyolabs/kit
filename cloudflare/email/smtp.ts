@@ -1,6 +1,6 @@
 import type { EnvStore } from '../../utils/env';
 
-import { BaseEmailClient, type Email, type EmailSender } from './base';
+import { BaseEmailClient, type EmailSender, type Message } from './base';
 
 // Email over SMTP (e.g. Amazon SES) with `worker-mailer`, which speaks SMTP over
 // `cloudflare:sockets`: for sending to any recipient, where a `send_email` binding
@@ -31,7 +31,7 @@ export class SmtpClient extends BaseEmailClient {
 		super(sender);
 	}
 
-	async deliver(input: Email): Promise<void> {
+	async deliver(input: Message): Promise<void> {
 		// Loaded lazily: it imports cloudflare:sockets, which only exists on Workers.
 		const { WorkerMailer } = await import('worker-mailer');
 		await WorkerMailer.send(smtpConnection(this.settings()), {

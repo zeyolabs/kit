@@ -1,19 +1,19 @@
 import { createMimeMessage } from 'mimetext/browser';
 
-import { BaseEmailClient, type Email, type EmailSender } from './base';
+import { BaseEmailClient, type EmailSender, type Message } from './base';
 
 export {
 	BaseEmailClient,
-	type Email,
 	type EmailAttachment,
 	type EmailSender,
 	type IEmailClient,
+	type Message,
 } from './base';
 
 /** The shape of a Workers `send_email` binding. */
 export type EmailBinding = { send(message: unknown): Promise<unknown> };
 
-function buildRawEmail(from: string, fromName: string | undefined, input: Email): string {
+function buildRawEmail(from: string, fromName: string | undefined, input: Message): string {
 	const msg = createMimeMessage();
 	msg.setSender(fromName ? { addr: from, name: fromName } : { addr: from });
 	msg.setRecipient(input.to);
@@ -41,7 +41,7 @@ export class EmailClient extends BaseEmailClient {
 		this.binding = config.binding;
 	}
 
-	async deliver(input: Email): Promise<void> {
+	async deliver(input: Message): Promise<void> {
 		const from = this.fromFor(input);
 		// Dynamic: `cloudflare:email` only resolves inside the Workers runtime.
 		const { EmailMessage } = await import('cloudflare:email');
