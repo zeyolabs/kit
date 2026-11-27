@@ -1,13 +1,21 @@
+/** Secrets Store binding names by role, e.g. `{ stripe: 'STRIPE_SECRET_KEY' }`. */
+export type CloudflareSecrets = Readonly<Record<string, string>>;
+
 /** Config vars (`vars` in wrangler.jsonc) AND secrets (Secrets Store bindings in prod, plain
  *  strings in local `.dev.vars`/`.env`) — one store for both. Construct directly in tests
  *  (`new EnvStore({ AUTH_URL: '...' })`) — real validation logic, no fake method stubs to keep in
  *  sync. Production gets the one real instance via `resolve()`/`envStore()` below. */
 export class EnvStore {
 	private static instance: EnvStore | null = null;
+	private static secretNames: ReadonlySet<string> = new Set();
 
 	private readonly secrets: Record<string, string> = {};
 
 	constructor(private readonly env: Record<string, unknown>) {}
+
+	static configure(secrets: CloudflareSecrets): void {
+		EnvStore.secretNames = new Set(Object.values(secrets));
+	}
 
 	static current(): EnvStore {
 		if (!EnvStore.instance) throw new Error('EnvStore.resolve() has not run yet');
@@ -19,6 +27,7 @@ export class EnvStore {
 	 *  for its whole lifetime; only a test process resolving many different envs does. */
 	static resetForTests(): void {
 		EnvStore.instance = null;
+		EnvStore.secretNames = new Set();
 	}
 
 	/** Builds the one real instance for this isolate — idempotent. Called from `runWithContext`,
@@ -44,8 +53,9 @@ export class EnvStore {
 	 *  too, the secret is left unresolved, surfaced only if something actually reads it via
 	 *  `secret()`. `process` is absent in the real Workers runtime (no `nodejs_compat` polyfill
 	 *  covers it here), so this fallback only ever fires under local dev. */
-	static async resolve(env: unknown, secretNames: ReadonlySet<string>): Promise<void> {
+	static async resolve(env: unknown): Promise<void> {
 		if (EnvStore.instance) return;
+		const secretNames = EnvStore.secretNames;
 		const raw = env as Record<string, unknown>;
 		const instance = new EnvStore(raw);
 		const nodeEnv = typeof process === 'undefined' ? undefined : process.env;

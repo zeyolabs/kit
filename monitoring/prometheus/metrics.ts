@@ -154,16 +154,14 @@ export const Metrics = {
 	},
 
 	/** Plain-Worker `fetch` wrapper. `classifyRoute` collapses the path onto a fixed route set (no
-	 *  router here to supply one, and an unbounded label would blow up cardinality). `secretNames`:
-	 *  the app's secret-store binding names. */
+	 *  router here to supply one, and an unbounded label would blow up cardinality). */
 	withHTTP<Env extends object>(
 		service: string,
 		classifyRoute: (path: string) => string,
-		secretNames: ReadonlySet<string>,
 		handler: (request: Request, env: Env, ctx: ExecutionContext) => Promise<Response>
 	): (request: Request, env: Env, ctx: ExecutionContext) => Promise<Response> {
 		return (request, env, ctx) =>
-			runWithContext(env, secretNames, async () => {
+			runWithContext(env, async () => {
 				const response = await handler(request, env, ctx);
 				ctx.waitUntil(
 					pushRequestCount(

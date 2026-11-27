@@ -40,13 +40,9 @@ export class ContextStore {
 const als = new AsyncLocalStorage<ContextStore>();
 
 /** Wrap one request/invocation in this — whatever gets built during the call is closed
- *  automatically when it returns. `secretNames`: the app's list of Secrets Store binding names. */
-export async function runWithContext<T>(
-	env: object,
-	secretNames: ReadonlySet<string>,
-	fn: () => Promise<T>
-): Promise<T> {
-	await EnvStore.resolve(env, secretNames);
+ *  automatically when it returns. */
+export async function runWithContext<T>(env: object, fn: () => Promise<T>): Promise<T> {
+	await EnvStore.resolve(env);
 	const store = new ContextStore(env);
 	try {
 		return await als.run(store, fn);

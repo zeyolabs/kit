@@ -32,8 +32,7 @@ export class SmtpClient extends BaseEmailClient {
 		this.settings = config;
 	}
 
-	/** A client whose settings come from `envStore()` under the names in `keys` (so the password's
-	 *  name must be among the request context's `secretNames`). */
+	/** A client whose settings come from `envStore()` under the names in `keys`. */
 	static fromEnv(keys: SmtpKeys, sender: EmailSender): SmtpClient {
 		const store = envStore();
 		return new SmtpClient({
