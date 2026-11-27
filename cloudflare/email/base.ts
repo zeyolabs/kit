@@ -6,8 +6,10 @@ import { logger as defaultLogger, type LoggerClient } from '../../monitoring/log
 
 export type EmailAttachment = { base64Data: string; contentType: string; filename: string };
 
-export type EmailInput = {
+export type Email = {
 	attachments?: EmailAttachment[];
+	/** Sender address for this message, overriding the client's `from`. */
+	from?: string;
 	/** Display name for this message, overriding the client's `fromName`. */
 	fromName?: string;
 	html?: string;
@@ -20,9 +22,9 @@ export type EmailInput = {
 
 export interface IEmailClient {
 	/** Sends one message; throws on failure, for callers that retry (queue consumers). */
-	deliver(input: EmailInput): Promise<void>;
+	deliver(input: Email): Promise<void>;
 	/** Sends one message. Logs and returns `false` on failure instead of throwing. */
-	send(input: EmailInput): Promise<boolean>;
+	send(input: Email): Promise<boolean>;
 }
 
 export type EmailSender = {
@@ -36,15 +38,15 @@ export type EmailSender = {
 export abstract class BaseEmailClient implements IEmailClient {
 	constructor(protected readonly sender: EmailSender) {}
 
-	abstract deliver(input: EmailInput): Promise<void>;
+	abstract deliver(input: Email): Promise<void>;
 
-	async send(input: EmailInput): Promise<boolean> {
+	async send(input: Email): Promise<boolean> {
 		try {
 			await this.deliver(input);
 			return true;
 		} catch (err) {
 			await (this.sender.logger ?? defaultLogger).error(err, {
-				from: this.sender.from,
+				from: this.fromFor(input),
 				subject: input.subject,
 				to: input.to,
 			});
@@ -52,8 +54,13 @@ export abstract class BaseEmailClient implements IEmailClient {
 		}
 	}
 
+	/** The sender address for one message: its own, else the client's. */
+	protected fromFor(input: Email): string {
+		return input.from ?? this.sender.from;
+	}
+
 	/** The display name for one message: its own, else the client's. */
-	protected nameFor(input: EmailInput): string | undefined {
+	protected nameFor(input: Email): string | undefined {
 		return input.fromName ?? this.sender.fromName;
 	}
 }

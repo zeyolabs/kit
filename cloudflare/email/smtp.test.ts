@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const send = vi.hoisted(() => vi.fn(async (..._args: unknown[]) => undefined));
 vi.mock('worker-mailer', () => ({ WorkerMailer: { send } }));
 
+import { EnvStore } from '../../utils/env';
 import { SmtpClient, smtpConnection } from './smtp';
 
 const settings = { host: 'smtp.example.com', password: 'pw', port: 587, username: 'user' };
@@ -60,6 +61,18 @@ describe('SmtpClient', () => {
 		});
 	});
 
+	it('sends from the message address when it has one', async () => {
+		await client().send({
+			from: 'info@example.com',
+			subject: 's',
+			text: 't',
+			to: 'bob@example.com',
+		});
+		expect(send.mock.calls[0][1]).toMatchObject({
+			from: { email: 'info@example.com', name: 'Example' },
+		});
+	});
+
 	it('falls back to the client display name', async () => {
 		await client().send({ subject: 's', text: 't', to: 'bob@example.com' });
 		expect(send.mock.calls[0][1]).toMatchObject({ from: { name: 'Example' } });
@@ -75,5 +88,29 @@ describe('SmtpClient', () => {
 		await expect(
 			client().deliver({ subject: 's', text: 't', to: 'x@example.com' })
 		).rejects.toThrow('auth failed');
+	});
+});
+
+describe('SmtpClient.fromEnv', () => {
+	it('reads the fixed SMTP names from the environment', async () => {
+		EnvStore.resetForTests();
+		EnvStore.configure({ ses: 'SES_SMTP_PASSWORD' });
+		await EnvStore.resolve({
+			SES_SMTP_PASSWORD: 'pw',
+			SMTP_HOST: 'smtp.example.com',
+			SMTP_PORT: '587',
+			SMTP_USERNAME: 'user',
+		});
+		await SmtpClient.fromEnv({ from: 'noreply@example.com' }).deliver({
+			subject: 's',
+			text: 't',
+			to: 'bob@example.com',
+		});
+		expect(send.mock.calls[0][0]).toMatchObject({
+			credentials: { password: 'pw', username: 'user' },
+			host: 'smtp.example.com',
+			port: 587,
+		});
+		EnvStore.resetForTests();
 	});
 });

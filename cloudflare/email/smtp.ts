@@ -1,5 +1,5 @@
 import { envStore } from '../../utils/env';
-import { BaseEmailClient, type EmailInput, type EmailSender } from './base';
+import { BaseEmailClient, type Email, type EmailSender } from './base';
 
 // Email over SMTP (e.g. Amazon SES) with `worker-mailer`, which speaks SMTP over
 // `cloudflare:sockets`: for sending to any recipient, where a `send_email` binding
@@ -7,9 +7,6 @@ import { BaseEmailClient, type EmailInput, type EmailSender } from './base';
 // stand in for it too.
 
 export type SmtpSettings = { host: string; password: string; port: number; username: string };
-
-/** The wrangler names of the SMTP settings: three vars and one Secrets Store secret. */
-export type SmtpKeys = { host: string; password: string; port: string; username: string };
 
 /** Connection options for worker-mailer: port 465 is implicit TLS, anything else STARTTLS. */
 export function smtpConnection({ host, password, port, username }: SmtpSettings) {
@@ -32,19 +29,19 @@ export class SmtpClient extends BaseEmailClient {
 		this.settings = config;
 	}
 
-	/** A client whose settings come from `envStore()` under the names in `keys`. */
-	static fromEnv(keys: SmtpKeys, sender: EmailSender): SmtpClient {
+	/** A client whose settings come from `envStore()`: the vars `SMTP_HOST`, `SMTP_PORT` and `SMTP_USERNAME`, and the secret `SES_SMTP_PASSWORD`. */
+	static fromEnv(sender: EmailSender): SmtpClient {
 		const store = envStore();
 		return new SmtpClient({
 			...sender,
-			host: store.string(keys.host),
-			password: store.secret(keys.password),
-			port: store.int(keys.port),
-			username: store.string(keys.username),
+			host: store.string('SMTP_HOST'),
+			password: store.secret('SES_SMTP_PASSWORD'),
+			port: store.int('SMTP_PORT'),
+			username: store.string('SMTP_USERNAME'),
 		});
 	}
 
-	async deliver(input: EmailInput): Promise<void> {
+	async deliver(input: Email): Promise<void> {
 		// Loaded lazily: it imports cloudflare:sockets, which only exists on Workers.
 		const { WorkerMailer } = await import('worker-mailer');
 		await WorkerMailer.send(smtpConnection(this.settings), {
@@ -53,7 +50,7 @@ export class SmtpClient extends BaseEmailClient {
 				filename: a.filename,
 				mimeType: a.contentType,
 			})),
-			from: { email: this.sender.from, name: this.nameFor(input) },
+			from: { email: this.fromFor(input), name: this.nameFor(input) },
 			html: input.html,
 			reply: input.replyTo,
 			subject: input.subject,

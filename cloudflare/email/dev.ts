@@ -1,13 +1,13 @@
-import type { EmailInput, IEmailClient } from './base';
+import type { Email, IEmailClient } from './base';
 
 /** Stands in for a real client where there's no transport (local dev): logs instead of sending,
  *  so the message is still visible. */
 export class DevEmailClient implements IEmailClient {
-	async deliver({ subject, text, to }: EmailInput): Promise<void> {
+	async deliver({ subject, text, to }: Email): Promise<void> {
 		console.log(`[email:dev] to=${to} subject=${subject}${text ? `\n${text}` : ''}`);
 	}
 
-	async send(input: EmailInput): Promise<boolean> {
+	async send(input: Email): Promise<boolean> {
 		await this.deliver(input);
 		return true;
 	}
