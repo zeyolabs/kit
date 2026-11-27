@@ -18,6 +18,7 @@
 	},
 	"files": [
 		"eslint-config.js",
+		"docs",
 		"auth",
 		"cloudflare",
 		"monitoring",
