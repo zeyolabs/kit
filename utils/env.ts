@@ -34,16 +34,15 @@ export class EnvStore {
 	 *  or directly (a Durable Object, say) if that never runs. Takes `unknown` so callers never
 	 *  need their own cast.
 	 *
-	 *  Eagerly resolves every binding named in `secretNames` so `secret()` can stay sync afterward.
+	 *  Eagerly resolves every binding named in the configured secrets so `secret()` can stay sync afterward.
 	 *  Gated on the name, not the binding's shape: Secrets Store, Service Bindings, and VPC services
 	 *  are all backed by the identical `Fetcher` RPC stub (same `constructor.name`, same prototype,
 	 *  zero own keys — verified live), so a prior attempt at excluding fetch-shaped bindings from
 	 *  this scan (#1262) instead excluded every real secret too and broke them all in prod (reverted
 	 *  in #1263). Filtering by name is the only signal that's actually reliable, and as a side
 	 *  effect it also means `.get()` is never called on a Service/VPC binding, so it stops causing a
-	 *  spurious cross-worker RPC exception log too. `secretNames` itself is app config
-	 *  (the names of the Secrets Store bindings), not here — this package stays account-agnostic, the actual
-	 *  list of real secret names is per-app config.
+	 *  spurious cross-worker RPC exception log too. The names come from the app's
+	 *  `EnvStore.configure(...)`; this package stays account-agnostic.
 	 *
 	 *  Local resolution is unreliable in two distinct ways (see the wiki): `.get()` can throw (an
 	 *  unseeded binding), or it can resolve cleanly to something that isn't a real secret at all —
