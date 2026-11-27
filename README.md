@@ -46,7 +46,7 @@ in 15 minutes; passkeys are verified server-side (ES256/RS256, user verification
 
 1. Tables: add `node_modules/@zeyolabs/kit/auth/schema.ts` to the app's drizzle-kit `schema` and
    generate a migration (`users`, `sessions`, `auth_tokens`, `passkeys`).
-2. Config (`Auth.configure`), once at module scope (e.g. next to `secretNames`):
+2. Config (`Auth.configure`), once at module scope (e.g. next to `EnvStore.configure(Secrets)`):
    ```ts
    Auth.configure({
    	appName: 'My app',

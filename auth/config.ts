@@ -87,7 +87,7 @@ export type ResolvedAuthConfig = AuthConfig & {
 
 let current: null | ResolvedAuthConfig = null;
 
-/** Registers the app's auth config. Call once at module scope (e.g. next to `secretNames`), so
+/** Registers the app's auth config. Call once at module scope (e.g. next to `EnvStore.configure(Secrets)`), so
  *  importing the hooks file registers it. */
 function configureAuth(
 	config: AuthConfig & Partial<Omit<ResolvedAuthConfig, keyof AuthConfig>>
