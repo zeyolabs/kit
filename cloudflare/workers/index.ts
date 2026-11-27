@@ -89,11 +89,10 @@ type RawFetch<Env> = (
  *  `WorkerBindingRouter`, fetch+queue together for `WorkerRouter`). */
 function buildFetch<Env extends object>(
 	routes: Map<string, HttpHandler<Env>>,
-	middlewares: HttpMiddleware<Env>[],
-	secretNames: ReadonlySet<string>
+	middlewares: HttpMiddleware<Env>[]
 ): RawFetch<Env> {
 	return (request, env, executionCtx) =>
-		runWithContext(env, secretNames, () => {
+		runWithContext(env, () => {
 			const url = new URL(request.url);
 			const handler = routes.get(`${request.method} ${url.pathname}`);
 			const c: WorkerContext<Env> = {
@@ -120,21 +119,15 @@ export class WorkerBindingRouter<Env extends object> {
 
 	/** Prefer `WorkerBindingRouter.withSentry()` — this bare constructor skips Sentry
 	 *  instrumentation entirely, which no real worker should ship without. */
-	constructor(
-		secretNames: ReadonlySet<string>,
-		sentryOptions?: (env: Env) => CloudflareOptions | undefined
-	) {
-		const rawFetch = buildFetch(this.routes, this.middlewares, secretNames);
+	constructor(sentryOptions?: (env: Env) => CloudflareOptions | undefined) {
+		const rawFetch = buildFetch(this.routes, this.middlewares);
 		this.fetch = sentryOptions
 			? Sentry.withSentry(sentryOptions, { fetch: rawFetch }).fetch!
 			: rawFetch;
 	}
 
-	/** `secretNames`: the app's secret-store binding names. */
-	static withSentry<Env extends WorkerSentryEnv>(
-		secretNames: ReadonlySet<string>
-	): WorkerBindingRouter<Env> {
-		return new WorkerBindingRouter<Env>(secretNames, sentryOptionsFor);
+	static withSentry<Env extends WorkerSentryEnv>(): WorkerBindingRouter<Env> {
+		return new WorkerBindingRouter<Env>(sentryOptionsFor);
 	}
 
 	/** Terminal call — builds the `WorkerEntrypoint` class a `wrangler.jsonc` binding names via
@@ -189,17 +182,14 @@ export class WorkerRouter<Env extends object> {
 
 	/** Prefer `WorkerRouter.withSentry()` — this bare constructor skips Sentry instrumentation
 	 *  entirely, which no real worker should ship without. */
-	constructor(
-		secretNames: ReadonlySet<string>,
-		sentryOptions?: (env: Env) => CloudflareOptions | undefined
-	) {
-		const rawFetch = buildFetch(this.routes, this.middlewares, secretNames);
+	constructor(sentryOptions?: (env: Env) => CloudflareOptions | undefined) {
+		const rawFetch = buildFetch(this.routes, this.middlewares);
 		const rawHandleQueue = (
 			batch: MessageBatch<unknown>,
 			env: Env,
 			executionCtx: ExecutionContext
 		): Promise<void> =>
-			runWithContext(env, secretNames, () => {
+			runWithContext(env, () => {
 				const handler = this.queueHandlers.get(batch.queue);
 				if (!handler)
 					throw new Error(`WorkerRouter: no queue handler registered for "${batch.queue}"`);
@@ -215,7 +205,7 @@ export class WorkerRouter<Env extends object> {
 			env: Env,
 			executionCtx: ExecutionContext
 		): Promise<void> =>
-			runWithContext(env, secretNames, () => {
+			runWithContext(env, () => {
 				const handler = this.cronHandlers.get(controller.cron);
 				if (!handler)
 					throw new Error(`WorkerRouter: no cron handler registered for "${controller.cron}"`);
@@ -251,12 +241,9 @@ export class WorkerRouter<Env extends object> {
 	/** The one real entry point — every route/queue registration still chains off the returned
 	 *  instance (`.use(...).post(...).queue(...)`), but `fetch`/`handleQueue` come out the other
 	 *  end already Sentry-instrumented, same as every worker's export today, just without a
-	 *  separate `Sentry.withSentry(...)` wrap at the bottom of the file. `secretNames`:
-	 *  the app's secret-store binding names. */
-	static withSentry<Env extends WorkerSentryEnv>(
-		secretNames: ReadonlySet<string>
-	): WorkerRouter<Env> {
-		return new WorkerRouter<Env>(secretNames, sentryOptionsFor);
+	 *  separate `Sentry.withSentry(...)` wrap at the bottom of the file. */
+	static withSentry<Env extends WorkerSentryEnv>(): WorkerRouter<Env> {
+		return new WorkerRouter<Env>(sentryOptionsFor);
 	}
 
 	/** Terminal call for a worker's default export — fetch, queue, scheduled, or any mix. */

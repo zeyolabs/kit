@@ -16,7 +16,6 @@ const TICK_IN_PROGRESS_KEY = 'tickInProgress';
  * export class MyThingDO extends TickingDurableObject<Env> {
  *   protected readonly tickIntervalMs = 60_000;
  *   protected readonly service = 'my-worker';
- *   protected readonly secretNames = SECRET_STORE_BINDING_NAMES; // the app's secret-store binding names
  *   protected async tick(): Promise<void> { ... }
  *   protected async onTick(outcome: 'error' | 'ok'): Promise<void> {
  *     Metrics.TickingDO(this.service, envStore()).onTick(outcome);
@@ -27,13 +26,11 @@ const TICK_IN_PROGRESS_KEY = 'tickInProgress';
  * Wire a cron backstop with `.cron(expr, ensureTickingDO<Env>(env => env.MY_DO_NAMESPACE))` below.
  */
 export abstract class TickingDurableObject<Env> extends DurableObject<Env> {
-	/** the app's secret-store binding names. */
-	protected abstract readonly secretNames: ReadonlySet<string>;
 	protected abstract readonly service: string;
 	protected abstract readonly tickIntervalMs: number;
 
 	async alarm(): Promise<void> {
-		await EnvStore.resolve(this.env, this.secretNames);
+		await EnvStore.resolve(this.env);
 		await this.ctx.storage.put(TICK_IN_PROGRESS_KEY, true);
 		try {
 			await this.tick();

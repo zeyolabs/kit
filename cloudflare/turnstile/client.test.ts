@@ -5,10 +5,7 @@ import { TurnstileClient } from './client';
 
 async function client() {
 	EnvStore.resetForTests();
-	await EnvStore.resolve(
-		{ TURNSTILE_SECRET_KEY: 'real-secret', TURNSTILE_SITE_KEY: 'real-site' },
-		new Set()
-	);
+	await EnvStore.resolve({ TURNSTILE_SECRET_KEY: 'real-secret', TURNSTILE_SITE_KEY: 'real-site' });
 	return new TurnstileClient(EnvStore.current(), 'TURNSTILE_SECRET_KEY', 'TURNSTILE_SITE_KEY');
 }
 

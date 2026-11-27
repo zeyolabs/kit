@@ -143,7 +143,7 @@ describe('turnstile on the email form', () => {
 			turnstile: { secretName: 'TURNSTILE_SECRET_KEY', siteKeyName: 'TURNSTILE_SITE_KEY' },
 		});
 		EnvStore.resetForTests();
-		await EnvStore.resolve({ TURNSTILE_SECRET_KEY: 'secret-key' }, new Set());
+		await EnvStore.resolve({ TURNSTILE_SECRET_KEY: 'secret-key' });
 	});
 
 	function siteverify(success: boolean) {

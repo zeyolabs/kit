@@ -31,7 +31,7 @@ describe('Metrics.trackHTTP', () => {
 	// by design — splitting "doesn't throw" and "only warns once" across separate `it()`s would let
 	// the first call's cached fallback silently satisfy the second test for the wrong reason.
 	it('resolves the response instead of throwing when PROMETHEUS_* is unconfigured, and only warns once', async () => {
-		await EnvStore.resolve({}, new Set()); // no PROMETHEUS_PASSWORD anywhere — client() would throw
+		await EnvStore.resolve({}); // no PROMETHEUS_PASSWORD anywhere — client() would throw
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
 		const handle = Metrics.trackHTTP('dashboard');
