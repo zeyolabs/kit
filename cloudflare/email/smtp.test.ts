@@ -93,15 +93,13 @@ describe('SmtpClient', () => {
 
 describe('SmtpClient.fromEnv', () => {
 	it('reads the fixed SMTP names from the environment', async () => {
-		EnvStore.resetForTests();
-		EnvStore.configure({ ses: 'SES_SMTP_PASSWORD' });
-		await EnvStore.resolve({
+		const env = new EnvStore({
 			SES_SMTP_PASSWORD: 'pw',
 			SMTP_HOST: 'smtp.example.com',
 			SMTP_PORT: '587',
 			SMTP_USERNAME: 'user',
 		});
-		await SmtpClient.fromEnv({ from: 'noreply@example.com' }).deliver({
+		await SmtpClient.fromEnv(env, { from: 'noreply@example.com' }).deliver({
 			subject: 's',
 			text: 't',
 			to: 'bob@example.com',
@@ -111,6 +109,5 @@ describe('SmtpClient.fromEnv', () => {
 			host: 'smtp.example.com',
 			port: 587,
 		});
-		EnvStore.resetForTests();
 	});
 });
