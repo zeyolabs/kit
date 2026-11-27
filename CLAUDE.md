@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+@docs/commenting.md
+
 `@zeyolabs/kit`: shared, project-agnostic server toolkit for SvelteKit 3 on Cloudflare
 Workers. Used by `@zeyolabs/ui`, `@zeyolabs/shopping` and apps (Pure Leaves).
 
