@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthDb } from '../config';
 
-import { FakeEmailClient } from '../../email/testing';
+import { FakeMailClient } from '../../email/testing';
 import { createTestDb } from '../__fixtures__/db';
 import { Auth } from '../config';
 import { SignInService } from '../sign-in';
@@ -31,7 +31,7 @@ beforeEach(async () => {
 		},
 		appName: 'Example',
 		db: () => db,
-		email: () => new FakeEmailClient(),
+		email: () => new FakeMailClient(),
 		emailBrand: {
 			accent: '#000',
 			accentDark: '#000',
@@ -98,7 +98,7 @@ describe('Auth.configure owners', () => {
 		accounts: { memberPermissions: ['projects.read'], permissions: ['projects.read'] },
 		appName: 'Example',
 		db: () => db,
-		email: () => new FakeEmailClient(),
+		email: () => new FakeMailClient(),
 		emailBrand: {
 			accent: '#000',
 			accentDark: '#000',

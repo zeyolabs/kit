@@ -1,8 +1,8 @@
-import type { IEmailClient, Message } from './base';
+import type { IMailClient, Message } from './base';
 
 /** Records every message instead of sending anything — for asserting what a service emailed,
  *  without a mock transport. Set `succeeds = false` to simulate a delivery failure. */
-export class FakeEmailClient implements IEmailClient {
+export class FakeMailClient implements IMailClient {
 	readonly sent: Message[] = [];
 	succeeds = true;
 

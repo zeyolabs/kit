@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthDb } from './config';
 
-import { FakeEmailClient } from '../email/testing';
+import { FakeMailClient } from '../email/testing';
 import { EnvStore } from '../utils/env';
 import { TestAuthenticator } from './__fixtures__/authenticator';
 import { createTestDb } from './__fixtures__/db';
@@ -31,14 +31,14 @@ const sentLink = (i = 0) =>
 let db: AuthDb;
 let accounts: AccountService;
 let signIn: SignInService;
-let mail: FakeEmailClient;
+let mail: FakeMailClient;
 let jar: Map<string, string>;
 
 beforeEach(async () => {
 	db = await createTestDb();
 	accounts = new AccountService(db, CATALOGUE);
 	signIn = new SignInService(db);
-	mail = new FakeEmailClient();
+	mail = new FakeMailClient();
 	jar = new Map();
 	Auth.configure({
 		accounts: CATALOGUE,

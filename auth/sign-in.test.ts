@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { AuthDb } from './config';
 
 import { FakeTurnstileClient } from '../cloudflare/turnstile/testing';
-import { FakeEmailClient } from '../email/testing';
+import { FakeMailClient } from '../email/testing';
 import { createTestDb } from './__fixtures__/db';
 import { Auth } from './config';
 import { SignInService } from './sign-in';
@@ -107,10 +107,10 @@ describe('users', () => {
 });
 
 describe('requesting a sign-in link', () => {
-	let mail: FakeEmailClient;
+	let mail: FakeMailClient;
 
 	beforeEach(() => {
-		mail = new FakeEmailClient();
+		mail = new FakeMailClient();
 		Auth.configure({
 			accounts: { memberPermissions: [], permissions: [] },
 			appName: 'Example',

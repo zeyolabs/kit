@@ -1,10 +1,10 @@
 import type { EnvStore } from '../utils/env';
 
-import { BaseEmailClient, type EmailClientOptions, type Message } from './base';
+import { BaseMailClient, type MailClientOptions, type Message } from './base';
 
 // Email over SMTP (e.g. Amazon SES) with `worker-mailer`, which speaks SMTP over
 // `cloudflare:sockets`: for sending to any recipient, where a `send_email` binding
-// (`EmailClient`) can't. Same `IEmailClient` contract, so `DevEmailClient` and `FakeEmailClient`
+// (`CFMailClient`) can't. Same `IMailClient` contract, so `DevMailClient` and `FakeMailClient`
 // stand in for it too.
 
 export type SmtpSettings = { host: string; password: string; port: number; username: string };
@@ -22,10 +22,10 @@ export function smtpConnection({ host, password, port, username }: SmtpSettings)
 	};
 }
 
-export class SmtpClient extends BaseEmailClient {
+export class SESMailClient extends BaseMailClient {
 	constructor(
 		private readonly env: EnvStore,
-		options?: EmailClientOptions
+		options?: MailClientOptions
 	) {
 		super(options);
 	}

@@ -4,7 +4,7 @@ const send = vi.hoisted(() => vi.fn(async (..._args: unknown[]) => undefined));
 vi.mock('worker-mailer', () => ({ WorkerMailer: { send } }));
 
 import { EnvStore } from '../utils/env';
-import { SmtpClient, smtpConnection } from './smtp';
+import { SESMailClient, smtpConnection } from './ses';
 
 const settings = { host: 'smtp.example.com', password: 'pw', port: 587, username: 'user' };
 const log = { error: vi.fn(async () => undefined) };
@@ -15,7 +15,7 @@ const env = () =>
 		SMTP_PORT: String(settings.port),
 		SMTP_USERNAME: settings.username,
 	});
-const client = () => new SmtpClient(env(), { logger: log as never });
+const client = () => new SESMailClient(env(), { logger: log as never });
 
 beforeEach(() => {
 	send.mockClear();
@@ -38,7 +38,7 @@ describe('smtpConnection', () => {
 	});
 });
 
-describe('SmtpClient', () => {
+describe('SESMailClient', () => {
 	it('sends from the message, with its name and reply-to', async () => {
 		await expect(
 			client().send({

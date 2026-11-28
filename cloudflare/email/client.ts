@@ -1,6 +1,6 @@
 import { createMimeMessage } from 'mimetext/browser';
 
-import { BaseEmailClient, type EmailClientOptions, type Message } from '../../email/base';
+import { BaseMailClient, type MailClientOptions, type Message } from '../../email/base';
 
 /** The shape of a Workers `send_email` binding. */
 export type EmailBinding = { send(message: unknown): Promise<unknown> };
@@ -24,11 +24,11 @@ function buildRawEmail(from: string, fromName: string | undefined, input: Messag
 }
 
 /** Sends transactional email over a Workers `send_email` binding (Cloudflare Email Routing).
- *  Use `DevEmailClient` where there's no binding. */
-export class EmailClient extends BaseEmailClient {
+ *  Use `DevMailClient` where there's no binding. */
+export class CFMailClient extends BaseMailClient {
 	private readonly binding: EmailBinding;
 
-	constructor(config: EmailClientOptions & { binding: EmailBinding }) {
+	constructor(config: MailClientOptions & { binding: EmailBinding }) {
 		super(config);
 		this.binding = config.binding;
 	}

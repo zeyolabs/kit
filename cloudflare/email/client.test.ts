@@ -10,7 +10,7 @@ vi.mock('cloudflare:email', () => ({
 	},
 }));
 
-import { EmailClient } from './client';
+import { CFMailClient } from './client';
 
 type Sent = { from: string; raw: string; to: string };
 
@@ -21,10 +21,10 @@ const input = {
 	to: 'user@example.com',
 };
 
-describe('EmailClient', () => {
+describe('CFMailClient', () => {
 	const send = vi.fn(async (_message: unknown) => undefined);
 	const log = { error: vi.fn(async () => undefined) };
-	const client = () => new EmailClient({ binding: { send }, logger: log as never });
+	const client = () => new CFMailClient({ binding: { send }, logger: log as never });
 	const lastSent = () => send.mock.calls.at(-1)![0] as Sent;
 
 	beforeEach(() => {
