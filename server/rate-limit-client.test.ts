@@ -1,17 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { RateLimiter } from '../cloudflare/rate-limiter';
 import type { LoggerClient } from './logger';
 
-import { RateLimitClient, type RateLimiterBinding } from './rate-limit-client';
+import { RateLimitClient } from './rate-limit-client';
 
 const logger = { error: vi.fn() } as unknown as LoggerClient;
 const config = () => ({ requests: 3, window: 60 });
 
-function binding(respond: () => Promise<unknown>): RateLimiterBinding {
+function binding(respond: () => Promise<unknown>): DurableObjectNamespace<RateLimiter> {
 	return {
-		get: () => ({ fetch: respond as never }),
-		idFromName: (name) => name,
-	};
+		get: () => ({ fetch: respond }),
+		idFromName: (name: string) => name,
+	} as unknown as DurableObjectNamespace<RateLimiter>;
 }
 
 const json = (body: unknown, status: number) => ({
@@ -37,11 +38,6 @@ describe('RateLimitClient.check', () => {
 			config
 		);
 		expect(await client.check('ip:1', 'x')).toEqual({ allowed: false, retryAfter: 42 });
-	});
-
-	it('fails open and flags unavailable when the binding is missing', async () => {
-		const client = new RateLimitClient(undefined, logger, config);
-		expect(await client.check('ip:1', 'x')).toEqual({ allowed: true, unavailable: true });
 	});
 
 	it('fails open and flags unavailable when the limiter errors', async () => {
