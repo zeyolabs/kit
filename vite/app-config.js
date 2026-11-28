@@ -8,18 +8,18 @@ import { SentryVite } from '../monitoring/sentry-vite.js';
 
 const TURNSTILE = 'https://challenges.cloudflare.com';
 
-/** Content-Security-Policy every app starts from: its own origin, Sentry and Google web fonts. */
+/** Content-Security-Policy every app starts from: its own origin and Sentry. Fonts are self-hosted. */
 const BASE_CSP = {
 	'base-uri': ['self'],
 	'connect-src': ['self', 'https://*.ingest.de.sentry.io'],
 	'default-src': ['self'],
-	'font-src': ['self', 'https://fonts.gstatic.com'],
+	'font-src': ['self'],
 	'form-action': ['self'],
 	'frame-ancestors': ['none'],
 	'img-src': ['self', 'data:'],
 	'object-src': ['none'],
 	'script-src': ['self'],
-	'style-src': ['self', 'unsafe-inline', 'https://fonts.googleapis.com'],
+	'style-src': ['self', 'unsafe-inline'],
 };
 
 /**
