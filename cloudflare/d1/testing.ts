@@ -10,7 +10,7 @@ import { afterAll, beforeAll, vi } from 'vitest';
 // that fail on D1. Needs `miniflare` (an optional peer dependency), imported lazily so apps that
 // never call these don't load it.
 //
-// Like glasa: this file is the low-level piece. An app wraps it once in its own `tests/db.ts`
+// This file is the low-level piece. An app wraps it once in its own `tests/db.ts`
 // (its schema, its migrations, its fixtures) and its tests call that wrapper's `mockDb()`.
 
 export type D1TestDb<TSchema extends Record<string, unknown>> = {

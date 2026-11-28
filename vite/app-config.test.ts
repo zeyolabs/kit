@@ -34,7 +34,7 @@ describe('AppVite.config', () => {
 
 	it('leaves out the test block when asked', () => {
 		expect(
-			AppVite.config({ port: 5190, sentryOrg: 'org', sentryProject: 'banking', test: false }).test
+			AppVite.config({ port: 5190, sentryOrg: 'org', sentryProject: 'app', test: false }).test
 		).toBeUndefined();
 	});
 });

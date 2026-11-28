@@ -15,7 +15,7 @@ export const Normalize = {
 
 	/**
 	 * The registrable (root) domain for a URL or bare hostname via the Public Suffix List, or `''`
-	 * when none can be parsed. e.g. `https://www.skma.co.uk/x` → `skma.co.uk`.
+	 * when none can be parsed. e.g. `https://www.example.co.uk/x` → `example.co.uk`.
 	 */
 	domain(raw: string): string {
 		const value = raw.trim().toLowerCase();
