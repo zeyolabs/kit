@@ -1,17 +1,7 @@
+import type { RateLimiter } from '../cloudflare/rate-limiter';
 import type { LoggerClient } from './logger';
 
-export type RateLimiterBinding = {
-	get(id: unknown): {
-		fetch(
-			input: string,
-			init?: { body?: string; method?: string; signal?: AbortSignal }
-		): Promise<LimiterResponse>;
-	};
-	idFromName(name: string): unknown;
-};
-// Structural shape of the RATE_LIMITER durable object binding, so this file doesn't depend on
-// @cloudflare/workers-types.
-type LimiterResponse = { json<T>(): Promise<T>; ok: boolean; status: number };
+export type RateLimiterBinding = DurableObjectNamespace<RateLimiter>;
 
 export type RateLimitConfig = { requests: number; window: number };
 
@@ -78,9 +68,7 @@ export class RateLimitClient {
 }
 
 /** Stands in for the binding where it doesn't exist (local dev): always allows and is not `unavailable`. */
-export const localDevLimiter: RateLimiterBinding = {
-	get: () => ({
-		fetch: async () => ({ json: async <T>() => ({ allowed: true }) as T, ok: true, status: 200 }),
-	}),
+export const localDevLimiter = {
+	get: () => ({ fetch: async () => Response.json({ allowed: true }) }),
 	idFromName: (name: string) => name,
-};
+} as unknown as RateLimiterBinding;

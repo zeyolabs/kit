@@ -9,9 +9,9 @@ const config = () => ({ requests: 3, window: 60 });
 
 function binding(respond: () => Promise<unknown>): RateLimiterBinding {
 	return {
-		get: () => ({ fetch: respond as never }),
-		idFromName: (name) => name,
-	};
+		get: () => ({ fetch: respond }),
+		idFromName: (name: string) => name,
+	} as unknown as RateLimiterBinding;
 }
 
 const json = (body: unknown, status: number) => ({
