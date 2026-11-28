@@ -1,4 +1,4 @@
-import type { EnvStore } from '../../utils/env';
+import type { EnvStore } from '../utils/env';
 
 import { BaseEmailClient, type EmailClientOptions, type Message } from './base';
 

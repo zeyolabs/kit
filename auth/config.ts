@@ -1,6 +1,6 @@
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 
-import type { IEmailClient } from '../cloudflare/email/base';
+import type { IEmailClient } from '../email/base';
 import type { EmailBrand } from '../utils/email';
 import type { PermissionCatalogue } from './accounts/permissions';
 import type { AuthUser } from './sign-in';

@@ -1,14 +1,6 @@
 import { createMimeMessage } from 'mimetext/browser';
 
-import { BaseEmailClient, type EmailClientOptions, type Message } from './base';
-
-export {
-	BaseEmailClient,
-	type EmailAttachment,
-	type EmailClientOptions,
-	type IEmailClient,
-	type Message,
-} from './base';
+import { BaseEmailClient, type EmailClientOptions, type Message } from '../../email/base';
 
 /** The shape of a Workers `send_email` binding. */
 export type EmailBinding = { send(message: unknown): Promise<unknown> };

@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { AuthDb } from './config';
 
-import { FakeEmailClient } from '../cloudflare/email/testing';
 import { FakeTurnstileClient } from '../cloudflare/turnstile/testing';
+import { FakeEmailClient } from '../email/testing';
 import { createTestDb } from './__fixtures__/db';
 import { Auth } from './config';
 import { SignInService } from './sign-in';

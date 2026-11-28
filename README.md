@@ -93,8 +93,8 @@ Accounts own resources; users reach them through a membership. Resource tables c
 ## Email clients
 
 `IEmailClient` (`deliver` throws, `send` logs and returns `false`) has two transports on
-`BaseEmailClient`: `EmailClient` (`cloudflare/email`, a Workers `send_email` binding) and
-`SmtpClient` (`cloudflare/email/smtp`, e.g. Amazon SES, any recipient; `new SmtpClient(env)`
+`BaseEmailClient` (`email/base`): `EmailClient` (`cloudflare/email`, a Workers `send_email` binding) and
+`SmtpClient` (`email/smtp`, e.g. Amazon SES, any recipient; `new SmtpClient(env)`
 reads `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME` and the secret `SES_SMTP_PASSWORD` from the env). `DevEmailClient` prints instead of sending and
 `FakeEmailClient` records messages for tests; both work in place of either transport.
 

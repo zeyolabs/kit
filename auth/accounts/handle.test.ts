@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthDb } from '../config';
 
-import { FakeEmailClient } from '../../cloudflare/email/testing';
+import { FakeEmailClient } from '../../email/testing';
 import { createTestDb } from '../__fixtures__/db';
 import { Auth } from '../config';
 import { SignInService } from '../sign-in';

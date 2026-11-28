@@ -1,4 +1,4 @@
-import { logger as defaultLogger, type LoggerClient } from '../../monitoring/logger/client';
+import { logger as defaultLogger, type LoggerClient } from '../monitoring/logger/client';
 
 // What every email client shares: the message shape, the `IEmailClient` contract, and
 // `BaseEmailClient`, which owns the sender and the log-and-return-false `send`. A transport
