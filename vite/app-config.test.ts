@@ -32,6 +32,28 @@ describe('AppVite.config', () => {
 		expect(AppVite.csp({})['frame-src']).toBeUndefined();
 	});
 
+	it('runs app plugins before SvelteKit', async () => {
+		const config = AppVite.config({
+			kit: { files: { assets: '../web/static' } },
+			plugins: [{ name: 'app-plugin' }],
+			port: 5174,
+			sentryOrg: 'org',
+			sentryProject: 'app',
+		});
+		const flatten = async (items: unknown[]): Promise<{ name?: string }[]> =>
+			(
+				await Promise.all(
+					items.map(async (item) => {
+						const value = await item;
+						return Array.isArray(value) ? flatten(value) : [value as { name?: string }];
+					})
+				)
+			).flat();
+		const names = (await flatten(config.plugins ?? [])).map((plugin) => plugin?.name);
+		expect(names.indexOf('app-plugin')).toBeGreaterThan(-1);
+		expect(names.indexOf('app-plugin')).toBeLessThan(names.indexOf('vite-plugin-svelte'));
+	});
+
 	it('leaves out the test block when asked', () => {
 		expect(
 			AppVite.config({ port: 5190, sentryOrg: 'org', sentryProject: 'app', test: false }).test
