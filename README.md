@@ -100,26 +100,34 @@ reads `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME` and the secret `SES_SMTP_PASSWOR
 
 ## App hooks and Sentry
 
-The setup every app repeats lives here:
+Declare `SENTRY_DSN` in the app's `src/env.ts` (`{ public: true, static: true }`, value in
+`wrangler.jsonc` `vars`), then:
 
 ```ts
 // hooks.client.ts
-Sentry.init(SentryConfig.options({ dev, dsn: SENTRY_DSN, updated })); // updated from $app/state
-export const handleError = SentryConfig.clientErrors(Sentry.handleErrorWithSentry());
+import { Sentry } from '@zeyolabs/kit/monitoring/sentry-client';
+Sentry.client({ service: 'web' }); // service: optional, for a project several apps share
+export const handleError = Sentry.clientErrors();
 
 // hooks.server.ts
-const sentry = SentryConfig.options({ dev, dsn: SENTRY_DSN, release });
-export const handle = sequence(initCloudflareSentryHandle(sentry), sentryHandle(), /* app hooks */, AppHooks.securityHeaders({ private: true }));
-export const handleError = AppHooks.serverErrors(Sentry.handleErrorWithSentry(AppHooks.logError));
+import { Sentry } from '@zeyolabs/kit/monitoring/sentry-server';
+export const handle = sequence(Sentry.server({ service: 'web' }), /* app hooks */, AppHooks.securityHeaders({ private: true }));
+export const handleError = Sentry.serverErrors();
+
+// a plain Worker (DSN from its `SENTRY_DSN` var)
+import { Sentry } from '@zeyolabs/kit/monitoring/sentry-worker';
+export default Sentry.worker({ service: 'mcp' }, handler); // also Sentry.durableObject(), Sentry.capture()
 ```
 
-`SentryConfig` (`@zeyolabs/kit/monitoring/sentry`) sends nothing from dev or loopback hosts and
-collects no personal data. In the browser, given SvelteKit's `updated`, it doesn't report errors
-from a tab left open across a deploy (including failed loads of chunks, stylesheets and routes that
-no longer exist): the check for a newer version shows `@zeyolabs/ui`'s `UpdateOverlay` instead
-(once in the root layout, `<UpdateOverlay />`). `AppHooks` (`@zeyolabs/kit/server/hooks`) sets
-security headers (a `private` app is also never cached or indexed) and reports only unexpected
-errors.
+Nothing is sent from dev or loopback hosts, and no personal data is collected. The environment is
+the build's Vite mode (`production`, or `staging` for `--mode staging`) and the release is the git
+SHA the Sentry build plugin injects. In the browser it doesn't report errors from a tab left open
+across a deploy (including failed loads of chunks, stylesheets and routes that no longer exist): the
+check for a newer version shows `@zeyolabs/ui`'s `UpdateOverlay` instead (once in the root layout,
+`<UpdateOverlay />`). `Sentry.serverErrors()` and `Sentry.clientErrors()` report only unexpected
+errors. `AppHooks` (`@zeyolabs/kit/server/hooks`) sets security headers (a `private` app is also
+never cached or indexed). `SentryConfig` (`@zeyolabs/kit/monitoring/sentry`) is the options builder
+underneath, for setups these don't cover.
 
 ## Developing against an app
 
