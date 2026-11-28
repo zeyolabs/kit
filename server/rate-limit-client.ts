@@ -1,8 +1,6 @@
 import type { RateLimiter } from '../cloudflare/rate-limiter';
 import type { LoggerClient } from './logger';
 
-export type RateLimiterBinding = DurableObjectNamespace<RateLimiter>;
-
 export type RateLimitConfig = { requests: number; window: number };
 
 export type RateLimitResult = {
@@ -25,7 +23,7 @@ export type RateLimitResult = {
  */
 export class RateLimitClient {
 	constructor(
-		private readonly limiter: RateLimiterBinding,
+		private readonly limiter: DurableObjectNamespace<RateLimiter>,
 		private readonly logger: LoggerClient,
 		private readonly configFor: (category: string) => RateLimitConfig
 	) {}
@@ -71,4 +69,4 @@ export class RateLimitClient {
 export const localDevLimiter = {
 	get: () => ({ fetch: async () => Response.json({ allowed: true }) }),
 	idFromName: (name: string) => name,
-} as unknown as RateLimiterBinding;
+} as unknown as DurableObjectNamespace<RateLimiter>;
