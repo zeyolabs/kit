@@ -33,9 +33,9 @@ const { Sentry: WorkerSentry } = await import('./sentry-worker');
 
 beforeEach(() => vi.clearAllMocks());
 
-describe('Sentry.client', () => {
+describe('Sentry.clientHandleError', () => {
 	it('inits with the app DSN, its mode as the environment and the service tag', () => {
-		ClientSentry.client({ service: 'admin' });
+		ClientSentry.clientHandleError({ service: 'admin' });
 		expect(sdk.init).toHaveBeenCalledWith(
 			expect.objectContaining({
 				dsn: 'https://key@sentry.test/1',
@@ -49,7 +49,7 @@ describe('Sentry.client', () => {
 	it('reports only unexpected client errors', () => {
 		const report = vi.fn();
 		sdk.handleErrorWithSentry.mockReturnValueOnce(report);
-		const handleError = ClientSentry.clientErrors();
+		const handleError = ClientSentry.clientHandleError();
 		handleError({ error: { status: 404 }, kind: 'expected' } as never);
 		expect(report).not.toHaveBeenCalled();
 		handleError({ error: new Error('x'), kind: 'unknown' } as never);
@@ -57,10 +57,10 @@ describe('Sentry.client', () => {
 	});
 });
 
-describe('Sentry.server', () => {
+describe('Sentry.serverHandle', () => {
 	it('passes the release the build plugin injected', () => {
 		vi.stubGlobal('SENTRY_RELEASE', { id: 'abc123' });
-		ServerSentry.server();
+		ServerSentry.serverHandle();
 		expect(sdk.initCloudflareSentryHandle).toHaveBeenCalledWith(
 			expect.objectContaining({ dsn: 'https://key@sentry.test/1', release: 'abc123' })
 		);
@@ -68,7 +68,7 @@ describe('Sentry.server', () => {
 	});
 
 	it('runs without an injected release', () => {
-		ServerSentry.server({ service: 'web' });
+		ServerSentry.serverHandle({ service: 'web' });
 		expect(sdk.initCloudflareSentryHandle).toHaveBeenCalledWith(
 			expect.objectContaining({ release: undefined })
 		);

@@ -14,7 +14,7 @@ declare const SENTRY_RELEASE: undefined | { id?: string };
 /** Needs `SENTRY_DSN` (public, static) in the app's src/env.ts. */
 export const Sentry = {
 	/** First in `handle`'s `sequence`, so failures in later hooks are reported. */
-	server({ service }: AppSentryOptions = {}): Handle {
+	serverHandle({ service }: AppSentryOptions = {}): Handle {
 		return sequence(
 			initCloudflareSentryHandle(
 				SentryConfig.options({
@@ -30,7 +30,7 @@ export const Sentry = {
 		);
 	},
 
-	serverErrors(): HandleServerError {
+	serverHandleError(): HandleServerError {
 		return AppHooks.serverErrors(handleErrorWithSentry(AppHooks.logError));
 	},
 };

@@ -10,7 +10,8 @@ import { type AppSentryOptions, SentryConfig } from './sentry';
 
 /** Needs `SENTRY_DSN` (public, static) in the app's src/env.ts. */
 export const Sentry = {
-	client({ service }: AppSentryOptions = {}) {
+	/** Inits the browser SDK and returns `handleError`. */
+	clientHandleError({ service }: AppSentryOptions = {}): HandleClientError {
 		SentrySdk.init(
 			SentryConfig.options({
 				dev,
@@ -20,9 +21,6 @@ export const Sentry = {
 				updated,
 			})
 		);
-	},
-
-	clientErrors(): HandleClientError {
 		return SentryConfig.clientErrors(SentrySdk.handleErrorWithSentry());
 	},
 };

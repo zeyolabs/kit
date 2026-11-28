@@ -106,13 +106,12 @@ Declare `SENTRY_DSN` in the app's `src/env.ts` (`{ public: true, static: true }`
 ```ts
 // hooks.client.ts
 import { Sentry } from '@zeyolabs/kit/monitoring/sentry-client';
-Sentry.client({ service: 'web' }); // service: optional, for a project several apps share
-export const handleError = Sentry.clientErrors();
+export const handleError = Sentry.clientHandleError({ service: 'web' }); // service: optional, for a project several apps share
 
 // hooks.server.ts
 import { Sentry } from '@zeyolabs/kit/monitoring/sentry-server';
-export const handle = sequence(Sentry.server({ service: 'web' }), /* app hooks */, AppHooks.securityHeaders({ private: true }));
-export const handleError = Sentry.serverErrors();
+export const handle = sequence(Sentry.serverHandle({ service: 'web' }), /* app hooks */, AppHooks.securityHeaders({ private: true }));
+export const handleError = Sentry.serverHandleError();
 
 // a plain Worker (DSN from its `SENTRY_DSN` var)
 import { Sentry } from '@zeyolabs/kit/monitoring/sentry-worker';
@@ -124,8 +123,8 @@ the build's Vite mode (`production`, or `staging` for `--mode staging`) and the 
 SHA the Sentry build plugin injects. In the browser it doesn't report errors from a tab left open
 across a deploy (including failed loads of chunks, stylesheets and routes that no longer exist): the
 check for a newer version shows `@zeyolabs/ui`'s `UpdateOverlay` instead (once in the root layout,
-`<UpdateOverlay />`). `Sentry.serverErrors()` and `Sentry.clientErrors()` report only unexpected
-errors. `AppHooks` (`@zeyolabs/kit/server/hooks`) sets security headers (a `private` app is also
+`<UpdateOverlay />`). `Sentry.serverHandleError()` and `Sentry.clientHandleError()` report only
+unexpected errors. `AppHooks` (`@zeyolabs/kit/server/hooks`) sets security headers (a `private` app is also
 never cached or indexed). `SentryConfig` (`@zeyolabs/kit/monitoring/sentry`) is the options builder
 underneath, for setups these don't cover.
 
