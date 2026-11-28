@@ -1,6 +1,6 @@
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 
-import type { IEmailClient } from '../cloudflare/email/base';
+import type { IMailClient } from '../email/base';
 import type { EmailBrand } from '../utils/email';
 import type { PermissionCatalogue } from './accounts/permissions';
 import type { AuthUser } from './sign-in';
@@ -31,11 +31,12 @@ export type AuthConfig = {
 	 *  host-only. Changing it signs everyone out once (the old cookie no longer matches). */
 	cookieDomain?: string;
 	db: () => AuthDb;
-	/** Sends the sign-in email (`magicLinkEmail`): any `IEmailClient`, e.g. `SmtpClient`, or
-	 *  `DevEmailClient` locally (it prints the link). Called per request. */
-	email: () => IEmailClient;
+	/** Sends the sign-in email (`magicLinkEmail`): any `IMailClient`, e.g. `SESMailClient`, or
+	 *  `DevMailClient` locally (it prints the link). Called per request. */
+	email: () => IMailClient;
 	/** Name and colours for the sign-in email. */
 	emailBrand: EmailBrand;
+	emailFrom: string;
 	/** Who may sign in at all. Checked when a link is requested, when it is used, and on every
 	 *  request, so removing someone signs them out. Unknown emails get the same "check your email"
 	 *  answer as known ones but no email. Invite-only apps use `hasAccountAccess` (a member of

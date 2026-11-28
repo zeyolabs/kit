@@ -51,7 +51,7 @@ in 15 minutes; passkeys are verified server-side (ES256/RS256, user verification
    Auth.configure({
    	appName: 'My app',
    	db: () => getDb(),
-   	email: () => (dev ? new DevEmailClient() : SmtpClient.fromEnv(smtpKeys, { from })),
+   	email: () => (dev ? new DevMailClient() : new SESMailClient(envStore())),
    	emailBrand: brand,
    	isAllowed: (email) => Allowlist.includes(email, env().ALLOWED_EMAILS),
    });
@@ -92,11 +92,11 @@ Accounts own resources; users reach them through a membership. Resource tables c
 
 ## Email clients
 
-`IEmailClient` (`deliver` throws, `send` logs and returns `false`) has two transports on
-`BaseEmailClient`: `EmailClient` (`cloudflare/email`, a Workers `send_email` binding) and
-`SmtpClient` (`cloudflare/email/smtp`, e.g. Amazon SES, any recipient; `SmtpClient.fromEnv(keys, sender)`
-reads the settings from the request context). `DevEmailClient` prints instead of sending and
-`FakeEmailClient` records messages for tests; both work in place of either transport.
+`IMailClient` (`deliver` throws, `send` logs and returns `false`) has two transports on
+`BaseMailClient` (`email/base`): `CFMailClient` (`cloudflare/email`, a Workers `send_email` binding) and
+`SESMailClient` (`email/ses`, e.g. Amazon SES, any recipient; `new SESMailClient(env)`
+reads `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME` and the secret `SES_SMTP_PASSWORD` from the env). `DevMailClient` prints instead of sending and
+`FakeMailClient` records messages for tests; both work in place of either transport.
 
 ## App hooks and Sentry
 

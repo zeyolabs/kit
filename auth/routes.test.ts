@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthDb } from './config';
 
-import { FakeEmailClient } from '../cloudflare/email/testing';
+import { FakeMailClient } from '../email/testing';
 import { EnvStore } from '../utils/env';
 import { TestAuthenticator } from './__fixtures__/authenticator';
 import { createTestDb } from './__fixtures__/db';
@@ -31,14 +31,14 @@ const sentLink = (i = 0) =>
 let db: AuthDb;
 let accounts: AccountService;
 let signIn: SignInService;
-let mail: FakeEmailClient;
+let mail: FakeMailClient;
 let jar: Map<string, string>;
 
 beforeEach(async () => {
 	db = await createTestDb();
 	accounts = new AccountService(db, CATALOGUE);
 	signIn = new SignInService(db);
-	mail = new FakeEmailClient();
+	mail = new FakeMailClient();
 	jar = new Map();
 	Auth.configure({
 		accounts: CATALOGUE,
@@ -46,6 +46,7 @@ beforeEach(async () => {
 		db: () => db,
 		email: () => mail,
 		emailBrand: BRAND,
+		emailFrom: 'noreply@example.com',
 		isAllowed: (email) => email.endsWith('@example.com'),
 	});
 });
@@ -139,6 +140,7 @@ describe('turnstile on the email form', () => {
 			db: () => db,
 			email: () => mail,
 			emailBrand: BRAND,
+			emailFrom: 'noreply@example.com',
 			isAllowed: (email) => email.endsWith('@example.com'),
 			turnstile: { secretName: 'TURNSTILE_SECRET_KEY', siteKeyName: 'TURNSTILE_SITE_KEY' },
 		});
@@ -208,6 +210,7 @@ describe('the handle', () => {
 			db: () => db,
 			email: () => mail,
 			emailBrand: BRAND,
+			emailFrom: 'noreply@example.com',
 			isAllowed: () => false,
 		});
 		await expect(AuthHandle.create()({ event: event('/'), resolve })).rejects.toMatchObject({

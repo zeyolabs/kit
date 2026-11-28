@@ -3,17 +3,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const send = vi.hoisted(() => vi.fn(async (..._args: unknown[]) => undefined));
 vi.mock('worker-mailer', () => ({ WorkerMailer: { send } }));
 
-import { SmtpClient, smtpConnection } from './smtp';
+import { EnvStore } from '../utils/env';
+import { SESMailClient, smtpConnection } from './ses';
 
 const settings = { host: 'smtp.example.com', password: 'pw', port: 587, username: 'user' };
 const log = { error: vi.fn(async () => undefined) };
-const client = () =>
-	new SmtpClient({
-		...settings,
-		from: 'noreply@example.com',
-		fromName: 'Example',
-		logger: log as never,
+const env = () =>
+	new EnvStore({
+		SES_SMTP_PASSWORD: settings.password,
+		SMTP_HOST: settings.host,
+		SMTP_PORT: String(settings.port),
+		SMTP_USERNAME: settings.username,
 	});
+const client = () => new SESMailClient(env(), { logger: log as never });
 
 beforeEach(() => {
 	send.mockClear();
@@ -36,10 +38,11 @@ describe('smtpConnection', () => {
 	});
 });
 
-describe('SmtpClient', () => {
-	it('sends from the configured sender, with per-message name and reply-to', async () => {
+describe('SESMailClient', () => {
+	it('sends from the message, with its name and reply-to', async () => {
 		await expect(
 			client().send({
+				from: 'noreply@example.com',
 				fromName: 'Example website',
 				html: '<p>Hi</p>',
 				replyTo: { email: 'ada@example.com' },
@@ -60,20 +63,23 @@ describe('SmtpClient', () => {
 		});
 	});
 
-	it('falls back to the client display name', async () => {
-		await client().send({ subject: 's', text: 't', to: 'bob@example.com' });
-		expect(send.mock.calls[0][1]).toMatchObject({ from: { name: 'Example' } });
+	it('sends each message from its own address', async () => {
+		const c = client();
+		await c.send({ from: 'info@example.com', subject: 's', text: 't', to: 'bob@example.com' });
+		await c.send({ from: 'support@example.com', subject: 's', text: 't', to: 'bob@example.com' });
+		expect(send.mock.calls[0][1]).toMatchObject({ from: { email: 'info@example.com' } });
+		expect(send.mock.calls[1][1]).toMatchObject({ from: { email: 'support@example.com' } });
 	});
 
 	it('logs and returns false on failure; deliver throws', async () => {
 		send.mockRejectedValueOnce(new Error('auth failed'));
-		await expect(client().send({ subject: 's', text: 't', to: 'x@example.com' })).resolves.toBe(
-			false
-		);
+		await expect(
+			client().send({ from: 'a@example.com', subject: 's', text: 't', to: 'x@example.com' })
+		).resolves.toBe(false);
 		expect(log.error).toHaveBeenCalledOnce();
 		send.mockRejectedValueOnce(new Error('auth failed'));
 		await expect(
-			client().deliver({ subject: 's', text: 't', to: 'x@example.com' })
+			client().deliver({ from: 'a@example.com', subject: 's', text: 't', to: 'x@example.com' })
 		).rejects.toThrow('auth failed');
 	});
 });
