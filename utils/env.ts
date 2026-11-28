@@ -89,6 +89,13 @@ export class EnvStore {
 		return value as T;
 	}
 
+	/** Same as `binding()` but for a binding that's genuinely optional (e.g. a Durable Object from
+	 *  another worker, absent in local dev) — `null` instead of throwing when unset. */
+	bindingNull<T>(name: string): null | T {
+		const value = this.env[name];
+		return value ? (value as T) : null;
+	}
+
 	/** A Cloudflare Hyperdrive binding. */
 	hyperdrive(name: string): Hyperdrive {
 		return this.binding<Hyperdrive>(name);

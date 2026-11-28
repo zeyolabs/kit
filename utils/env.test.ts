@@ -78,3 +78,14 @@ describe('EnvStore.secretNull()', () => {
 		expect(EnvStore.current().secretNull('MONITOR_RL_BYPASS')).toBe('bypass-token');
 	});
 });
+
+describe('EnvStore.bindingNull()', () => {
+	it('returns null instead of throwing when the binding is absent', () => {
+		expect(new EnvStore({}).bindingNull('RATE_LIMITER')).toBeNull();
+	});
+
+	it('returns the binding when present', () => {
+		const binding = { idFromName: () => 'id' };
+		expect(new EnvStore({ RATE_LIMITER: binding }).bindingNull('RATE_LIMITER')).toBe(binding);
+	});
+});
