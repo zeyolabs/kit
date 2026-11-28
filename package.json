@@ -77,6 +77,9 @@
 		"./monitoring/gates/testing": "./monitoring/gates/testing.ts",
 		"./monitoring/logger": "./monitoring/logger/client.ts",
 		"./monitoring/sentry": "./monitoring/sentry.ts",
+		"./monitoring/sentry-client": "./monitoring/sentry-client.ts",
+		"./monitoring/sentry-server": "./monitoring/sentry-server.ts",
+		"./monitoring/sentry-worker": "./monitoring/sentry-worker.ts",
 		"./monitoring/sentry-vite": {
 			"types": "./monitoring/sentry-vite.d.ts",
 			"default": "./monitoring/sentry-vite.js"

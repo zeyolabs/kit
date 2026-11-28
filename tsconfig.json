@@ -12,6 +12,7 @@
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"moduleResolution": "bundler",
+		"paths": { "$app/env/public": ["./types/app-env-public.d.ts"] },
 		"module": "esnext",
 		"target": "esnext",
 		"types": ["@cloudflare/workers-types", "vitest/globals"]

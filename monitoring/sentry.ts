@@ -15,6 +15,7 @@ export type SentryOptionsInput = {
 	/** Dev builds init the SDK, so instrumentation is wired, but send nothing. */
 	dev: boolean;
 	dsn: string | undefined;
+	environment?: string;
 	release?: string;
 	/** Tags every event, for a project shared by several workers. */
 	service?: string;
@@ -37,6 +38,8 @@ const STALE_CHUNK =
 // Turnstile's generic client errors (6xxxxx: the widget failed on their device). Not app bugs.
 const VISITOR_SIDE =
 	/^(Load failed|NetworkError when attempting to fetch resource|The network connection was lost|Network request failed)\b|\[Cloudflare Turnstile\] Error: 6\d{5}/;
+
+export type AppSentryOptions = { service?: string };
 
 /** SvelteKit's `updated` from `$app/state`. */
 export type DeployVersion = { check(): Promise<boolean>; readonly current: boolean };
@@ -105,7 +108,7 @@ export const SentryConfig = {
 		};
 	},
 
-	options({ dev, dsn, release, service, updated }: SentryOptionsInput) {
+	options({ dev, dsn, environment, release, service, updated }: SentryOptionsInput) {
 		const beforeSendTransaction = <T extends ScrubbableEvent>(event: T): null | T => {
 			if (isLocal(event.request?.url)) return null;
 			if (service) event.tags = { ...event.tags, service };
@@ -134,7 +137,7 @@ export const SentryConfig = {
 			dataCollection,
 			dsn,
 			enabled: !dev && Boolean(dsn),
-			environment: dev ? 'development' : 'production',
+			environment: dev ? 'development' : (environment ?? 'production'),
 			...(service ? { initialScope: { tags: { service } } } : {}),
 			release,
 			tracesSampleRate: 0.1,
