@@ -8,12 +8,12 @@ import { SentryVite } from '../monitoring/sentry-vite.js';
 
 const TURNSTILE = 'https://challenges.cloudflare.com';
 
-/** Content-Security-Policy every app starts from: its own origin, Sentry and the Google web font. */
+/** Content-Security-Policy every app starts from: its own origin, Sentry and Google web fonts. */
 const BASE_CSP = {
 	'base-uri': ['self'],
 	'connect-src': ['self', 'https://*.ingest.de.sentry.io'],
 	'default-src': ['self'],
-	'font-src': ['https://fonts.gstatic.com'],
+	'font-src': ['self', 'https://fonts.gstatic.com'],
 	'form-action': ['self'],
 	'frame-ancestors': ['none'],
 	'img-src': ['self', 'data:'],
@@ -31,7 +31,9 @@ export const AppVite = {
 	/** @param {import('./app-config').AppViteOptions} options */
 	config({
 		csp = {},
+		kit = {},
 		packages = ['kit', 'ui'],
+		plugins = [],
 		port,
 		sentryOrg,
 		sentryProject,
@@ -42,9 +44,8 @@ export const AppVite = {
 
 		return {
 			build: {
-				rollupOptions: {
-					external: ['cloudflare:sockets', 'cloudflare:email', 'cloudflare:workers'],
-				},
+				// Not `cloudflare:workers`: adapter-cloudflare stubs it so SvelteKit can analyse routes in Node.
+				rollupOptions: { external: ['cloudflare:sockets', 'cloudflare:email'] },
 			},
 			// The pre-bundler can't parse the TypeScript in their .svelte.ts files.
 			optimizeDeps: { exclude: packages.map((name) => `@zeyolabs/${name}`) },
@@ -67,6 +68,7 @@ export const AppVite = {
 					telemetry: false,
 				}),
 				tailwindcss(),
+				...plugins,
 				sveltekit({
 					adapter: adapter({
 						platformProxy: {
@@ -81,6 +83,7 @@ export const AppVite = {
 					experimental: { remoteFunctions: true },
 					preprocess: vitePreprocess(),
 					version: { pollInterval: 300_000 },
+					...kit,
 				}),
 			],
 			// @sveltejs/kit dual-instance fix
