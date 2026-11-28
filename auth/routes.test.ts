@@ -46,6 +46,7 @@ beforeEach(async () => {
 		db: () => db,
 		email: () => mail,
 		emailBrand: BRAND,
+		emailFrom: 'noreply@example.com',
 		isAllowed: (email) => email.endsWith('@example.com'),
 	});
 });
@@ -139,6 +140,7 @@ describe('turnstile on the email form', () => {
 			db: () => db,
 			email: () => mail,
 			emailBrand: BRAND,
+			emailFrom: 'noreply@example.com',
 			isAllowed: (email) => email.endsWith('@example.com'),
 			turnstile: { secretName: 'TURNSTILE_SECRET_KEY', siteKeyName: 'TURNSTILE_SITE_KEY' },
 		});
@@ -208,6 +210,7 @@ describe('the handle', () => {
 			db: () => db,
 			email: () => mail,
 			emailBrand: BRAND,
+			emailFrom: 'noreply@example.com',
 			isAllowed: () => false,
 		});
 		await expect(AuthHandle.create()({ event: event('/'), resolve })).rejects.toMatchObject({

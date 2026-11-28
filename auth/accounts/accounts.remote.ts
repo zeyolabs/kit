@@ -52,11 +52,14 @@ export const inviteMemberForm = Remote.Form(AccountSchemas.Invite, async (input)
 	const url = new URL(Auth.config().invitePath, event.url.origin);
 	url.searchParams.set('token', token);
 	const inviter = AuthHandle.locals(event).user?.email ?? 'Someone';
+	const { emailBrand, emailFrom } = Auth.config();
 	await Auth.config()
 		.email()
 		.deliver({
+			from: emailFrom,
+			fromName: emailBrand.name,
 			to: input.email,
-			...AuthEmails.invite(Auth.config().emailBrand, {
+			...AuthEmails.invite(emailBrand, {
 				accountName: account.name,
 				inviter,
 				url: url.href,

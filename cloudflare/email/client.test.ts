@@ -14,13 +14,17 @@ import { EmailClient } from './client';
 
 type Sent = { from: string; raw: string; to: string };
 
-const input = { html: '<p>Hello</p>', subject: 'Welcome', to: 'user@example.com' };
+const input = {
+	from: 'noreply@example.com',
+	html: '<p>Hello</p>',
+	subject: 'Welcome',
+	to: 'user@example.com',
+};
 
 describe('EmailClient', () => {
 	const send = vi.fn(async (_message: unknown) => undefined);
 	const log = { error: vi.fn(async () => undefined) };
-	const client = () =>
-		new EmailClient({ binding: { send }, from: 'noreply@example.com', logger: log as never });
+	const client = () => new EmailClient({ binding: { send }, logger: log as never });
 	const lastSent = () => send.mock.calls.at(-1)![0] as Sent;
 
 	beforeEach(() => {
@@ -28,7 +32,7 @@ describe('EmailClient', () => {
 		log.error.mockClear();
 	});
 
-	it('sends a MIME message from the configured address to the recipient', async () => {
+	it('sends a MIME message from the message address to the recipient', async () => {
 		await expect(client().send(input)).resolves.toBe(true);
 		const { from, raw, to } = lastSent();
 		expect(from).toBe('noreply@example.com');

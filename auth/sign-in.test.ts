@@ -123,6 +123,7 @@ describe('requesting a sign-in link', () => {
 				name: 'Example',
 				supportEmail: 'help@example.com',
 			},
+			emailFrom: 'noreply@example.com',
 			isAllowed: (email) => email.endsWith('@example.com'),
 		});
 	});

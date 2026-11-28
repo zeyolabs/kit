@@ -39,6 +39,7 @@ beforeEach(async () => {
 			name: 'Example',
 			supportEmail: 'x@example.com',
 		},
+		emailFrom: 'noreply@example.com',
 		isAllowed: () => true,
 	});
 });
@@ -105,6 +106,7 @@ describe('Auth.configure owners', () => {
 			name: 'Example',
 			supportEmail: 'x@example.com',
 		},
+		emailFrom: 'noreply@example.com',
 	});
 
 	it('needs isAllowed or owners', () => {

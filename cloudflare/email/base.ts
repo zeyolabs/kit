@@ -8,9 +8,7 @@ export type EmailAttachment = { base64Data: string; contentType: string; filenam
 
 export type Message = {
 	attachments?: EmailAttachment[];
-	/** Sender address for this message, overriding the client's `from`. */
-	from?: string;
-	/** Display name for this message, overriding the client's `fromName`. */
+	from: string;
 	fromName?: string;
 	html?: string;
 	replyTo?: { email: string; name?: string };
@@ -27,16 +25,10 @@ export interface IEmailClient {
 	send(input: Message): Promise<boolean>;
 }
 
-export type EmailSender = {
-	/** Envelope and header sender. */
-	from: string;
-	/** Display name next to `from`. */
-	fromName?: string;
-	logger?: LoggerClient;
-};
+export type EmailClientOptions = { logger?: LoggerClient };
 
 export abstract class BaseEmailClient implements IEmailClient {
-	constructor(protected readonly sender: EmailSender) {}
+	constructor(protected readonly options: EmailClientOptions = {}) {}
 
 	abstract deliver(input: Message): Promise<void>;
 
@@ -45,22 +37,12 @@ export abstract class BaseEmailClient implements IEmailClient {
 			await this.deliver(input);
 			return true;
 		} catch (err) {
-			await (this.sender.logger ?? defaultLogger).error(err, {
-				from: this.fromFor(input),
+			await (this.options.logger ?? defaultLogger).error(err, {
+				from: input.from,
 				subject: input.subject,
 				to: input.to,
 			});
 			return false;
 		}
-	}
-
-	/** The sender address for one message: its own, else the client's. */
-	protected fromFor(input: Message): string {
-		return input.from ?? this.sender.from;
-	}
-
-	/** The display name for one message: its own, else the client's. */
-	protected nameFor(input: Message): string | undefined {
-		return input.fromName ?? this.sender.fromName;
 	}
 }

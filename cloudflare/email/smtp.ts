@@ -1,6 +1,6 @@
 import type { EnvStore } from '../../utils/env';
 
-import { BaseEmailClient, type EmailSender, type Message } from './base';
+import { BaseEmailClient, type EmailClientOptions, type Message } from './base';
 
 // Email over SMTP (e.g. Amazon SES) with `worker-mailer`, which speaks SMTP over
 // `cloudflare:sockets`: for sending to any recipient, where a `send_email` binding
@@ -22,13 +22,12 @@ export function smtpConnection({ host, password, port, username }: SmtpSettings)
 	};
 }
 
-/** Settings are read from `env` when a message is delivered: the vars `SMTP_HOST`, `SMTP_PORT` and `SMTP_USERNAME`, and the secret `SES_SMTP_PASSWORD`. */
 export class SmtpClient extends BaseEmailClient {
 	constructor(
 		private readonly env: EnvStore,
-		sender: EmailSender
+		options?: EmailClientOptions
 	) {
-		super(sender);
+		super(options);
 	}
 
 	async deliver(input: Message): Promise<void> {
@@ -40,7 +39,7 @@ export class SmtpClient extends BaseEmailClient {
 				filename: a.filename,
 				mimeType: a.contentType,
 			})),
-			from: { email: this.fromFor(input), name: this.nameFor(input) },
+			from: { email: input.from, name: input.fromName },
 			html: input.html,
 			reply: input.replyTo,
 			subject: input.subject,

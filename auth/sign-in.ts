@@ -243,9 +243,15 @@ export class SignInService {
 					expiresInMinutes: SignInService.LINK_TTL_MS / 60_000,
 					url: url.href,
 				};
+				const { emailBrand, emailFrom } = Auth.config();
 				await Auth.config()
 					.email()
-					.deliver({ to: email, ...AuthEmails.magicLink(Auth.config().emailBrand, message) });
+					.deliver({
+						from: emailFrom,
+						fromName: emailBrand.name,
+						to: email,
+						...AuthEmails.magicLink(emailBrand, message),
+					});
 			} catch (err) {
 				logger.error(err, { op: 'auth.magic-link.send' });
 				return { error: 'send', sent: false };

@@ -36,6 +36,7 @@ export type AuthConfig = {
 	email: () => IEmailClient;
 	/** Name and colours for the sign-in email. */
 	emailBrand: EmailBrand;
+	emailFrom: string;
 	/** Who may sign in at all. Checked when a link is requested, when it is used, and on every
 	 *  request, so removing someone signs them out. Unknown emails get the same "check your email"
 	 *  answer as known ones but no email. Invite-only apps use `hasAccountAccess` (a member of
