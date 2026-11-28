@@ -37,8 +37,7 @@ describe('CFMailClient', () => {
 		const { from, raw, to } = lastSent();
 		expect(from).toBe('noreply@example.com');
 		expect(to).toBe('user@example.com');
-		// mimetext RFC 2047-encodes the subject (base64 of "Welcome"), so match either form.
-		expect(raw).toMatch(/Subject: (Welcome|=\?utf-8\?B\?V2VsY29tZQ==\?=)/);
+		expect(raw).toContain('Subject: Welcome');
 		expect(raw).toContain('text/html');
 	});
 
