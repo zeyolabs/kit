@@ -28,8 +28,9 @@ own `CLAUDE.md` holds only what is specific to it.
 ## SvelteKit 3
 
 - Config lives in each app's `vite.config.ts` through `AppVite.config` (no `svelte.config.js`).
-- Fonts are self-hosted: `@zeyolabs/ui/typography.css` brings Geist from `@fontsource`. The CSP
-  allows fonts only from the app's own origin, so no Google Fonts `<link>` in `app.html`.
+- Fonts are self-hosted and chosen by each app: import them in `app.css` (e.g. `@fontsource`) and
+  set `--font-sans` / `--font-mono`. The CSP allows fonts only from the app's own origin, so no
+  Google Fonts `<link>` in `app.html`.
 - App imports use `#lib/...` with the file extension; use `$app/env`, not `$app/environment`.
 - `resolve('shop')` takes no leading slash for plain paths.
 - Server actions are remote functions (`Remote.Form/Query/Cmd` from `@zeyolabs/kit/server/remote-functions`),
