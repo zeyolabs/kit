@@ -64,9 +64,3 @@ export class RateLimitClient {
 		}
 	}
 }
-
-/** Stands in for the binding where it doesn't exist (local dev): always allows and is not `unavailable`. */
-export const localDevLimiter = {
-	get: () => ({ fetch: async () => Response.json({ allowed: true }) }),
-	idFromName: (name: string) => name,
-} as unknown as DurableObjectNamespace<RateLimiter>;
