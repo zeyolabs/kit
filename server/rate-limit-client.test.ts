@@ -39,11 +39,6 @@ describe('RateLimitClient.check', () => {
 		expect(await client.check('ip:1', 'x')).toEqual({ allowed: false, retryAfter: 42 });
 	});
 
-	it('fails open and flags unavailable when the binding is missing', async () => {
-		const client = new RateLimitClient(undefined, logger, config);
-		expect(await client.check('ip:1', 'x')).toEqual({ allowed: true, unavailable: true });
-	});
-
 	it('fails open and flags unavailable when the limiter errors', async () => {
 		const client = new RateLimitClient(
 			binding(async () => {

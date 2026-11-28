@@ -21,7 +21,7 @@ export type RateLimitResult = {
 	resetAt?: number;
 	retryAfter?: number;
 	/**
-	 * True when the limiter binding was missing or unreachable, so `allowed` is a fail-open default,
+	 * True when the limiter was unreachable, so `allowed` is a fail-open default,
 	 * not a real verdict. Callers that need fail-CLOSED behaviour (abuse-sensitive public endpoints)
 	 * inspect this to reject with a 503 instead of silently passing.
 	 */
@@ -30,19 +30,17 @@ export type RateLimitResult = {
 
 /**
  * Shared rate-limit logic. The RATE_LIMITER durable-object binding is injected;
- * returns a result and the caller decides how to reject (e.g. a 429). Fails open: if the binding is
- * missing or unreachable the request passes, flagged `unavailable`.
+ * returns a result and the caller decides how to reject (e.g. a 429). Fails open: if the limiter is
+ * unreachable the request passes, flagged `unavailable`.
  */
 export class RateLimitClient {
 	constructor(
-		private readonly limiter: RateLimiterBinding | undefined,
+		private readonly limiter: RateLimiterBinding,
 		private readonly logger: LoggerClient,
 		private readonly configFor: (category: string) => RateLimitConfig
 	) {}
 
 	async check(identifier: string, category: string): Promise<RateLimitResult> {
-		if (!this.limiter) return { allowed: true, unavailable: true };
-
 		const config = this.configFor(category);
 		const stub = this.limiter.get(this.limiter.idFromName(identifier));
 
@@ -79,7 +77,7 @@ export class RateLimitClient {
 	}
 }
 
-/** Stands in for the binding when absent (local dev): always allows and is not `unavailable`. */
+/** Stands in for the binding where it doesn't exist (local dev): always allows and is not `unavailable`. */
 export const localDevLimiter: RateLimiterBinding = {
 	get: () => ({
 		fetch: async () => ({ json: async <T>() => ({ allowed: true }) as T, ok: true, status: 200 }),
